@@ -3,7 +3,15 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>Rico's Mealtracker</title>
+  <title>Rico’s Mealtracker</title>
+
+  <!-- PWA essentials -->
+ <link rel="manifest" href="/rico-mealtracker-main/manifest.webmanifest">
+<meta name="theme-color" content="#22d3ee">
+<link rel="icon" sizes="192x192" href="/rico-mealtracker-main/icons/icon-192.png">
+<link rel="apple-touch-icon" href="/rico-mealtracker-main/icons/icon-192.png">
+
+
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
@@ -108,7 +116,7 @@
       </details>
     </section>
 
-    <!-- Content area (switching views). Overview above stays -->
+    <!-- Content area -->
     <section class="card content">
       <div class="content-head">
         <div class="content-left">
@@ -120,13 +128,11 @@
         </div>
       </div>
 
-      <!-- HOME: day list -->
       <div id="viewHome" class="view">
         <div class="list" id="dayList"></div>
         <div class="muted small top8" id="statusLine"></div>
       </div>
 
-      <!-- SEARCH: OpenFoodFacts -->
       <div id="viewSearch" class="view hidden">
         <div class="muted small">Suche in Open Food Facts (DE).</div>
         <div class="row2 top8">
@@ -138,7 +144,6 @@
         <div class="list top8" id="offResults"></div>
       </div>
 
-      <!-- CREATE: add entry -->
       <div id="viewCreate" class="view hidden">
         <div class="muted small">Neuen Eintrag hinzufügen (oder aus Scan/Suche übernehmen)</div>
 
@@ -210,7 +215,6 @@
         </details>
       </div>
 
-      <!-- SCAN -->
       <div id="viewScan" class="view hidden">
         <div class="muted small">Barcode scannen (Android Chrome). Nach Scan wird Eintrag vorbereitet.</div>
 
@@ -228,7 +232,6 @@
     </section>
   </main>
 
-  <!-- Bottom Nav (fixed) -->
   <nav class="bottomnav">
     <button class="navbtn" data-view="scan" aria-label="Scannen">
       <span class="navicon">▦</span>
@@ -249,5 +252,49 @@
   </nav>
 
   <script src="app.js"></script>
+
+  <!-- REQUIRED: Service Worker register -->
+  <script>
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register("/rico-mealtracker-main/sw.js").catch(console.error);
+    });
+  }
+</script>
+<button id="installBtn"
+  style="
+    position:fixed;
+    bottom:120px;
+    right:16px;
+    padding:12px 16px;
+    background:#22d3ee;
+    color:#000;
+    border:none;
+    border-radius:12px;
+    font-weight:600;
+    display:none;
+    z-index:9999;">
+  App installieren
+</button>
+
+<script>
+let deferredPrompt = null;
+const btn = document.getElementById("installBtn");
+
+window.addEventListener("beforeinstallprompt", (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+  btn.style.display = "block";
+});
+
+btn.addEventListener("click", async () => {
+  if (!deferredPrompt) return;
+  deferredPrompt.prompt();
+  await deferredPrompt.userChoice;
+  deferredPrompt = null;
+  btn.style.display = "none";
+});
+</script>
+
 </body>
 </html>
