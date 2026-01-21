@@ -1,15 +1,13 @@
 {
-  "name": "Rico Mealtracker",
+  "name": "Rico’s Mealtracker",
   "short_name": "Rico",
-  "start_url": "./index.html",
-  "scope": "./",
+  "start_url": "/rico-mealtracker-main/?pwa=1",
+  "scope": "/rico-mealtracker-main/",
   "display": "standalone",
   "background_color": "#0e1116",
   "theme_color": "#22d3ee",
-  "description": "Offline Macro Tracker mit Templates, Skalierung und Cut-Countdown.",
- "icons": [
-  { "src": "./icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
-  { "src": "./icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
-  { "src": "./icons/icon-192-maskable.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
-  { "src": "./icons/icon-512-maskable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
-]
+  "icons": [
+    { "src": "/rico-mealtracker-main/icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/rico-mealtracker-main/icons/icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}
