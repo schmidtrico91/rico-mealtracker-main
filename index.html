@@ -1,0 +1,253 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Rico's Mealtracker</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <!-- Sticky Top -->
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-mark">R</span>
+      <span class="brand-title">Rico's Mealtracker</span>
+    </div>
+  </header>
+
+  <main class="app">
+    <!-- Always-visible overview -->
+    <section class="card hero">
+      <div class="hero-title">Kalorien</div>
+
+      <div class="hero-kcal">
+        <span id="sumKcal">0</span>
+        <span class="slash">/</span>
+        <span id="gKcal">0</span>
+        <span class="unit">kcal</span>
+      </div>
+
+      <div class="bar">
+        <div id="kcalBar" class="bar-fill" style="width:0%"></div>
+      </div>
+
+      <div class="macro-row">
+        <div class="macro">
+          <div class="macro-top">
+            <span class="dot dot-p"></span><span>Protein</span>
+          </div>
+          <div class="macro-val"><b id="sumP">0</b>/<span id="gP">0</span><span class="g">g</span></div>
+        </div>
+        <div class="macro">
+          <div class="macro-top">
+            <span class="dot dot-c"></span><span>Carbs</span>
+          </div>
+          <div class="macro-val"><b id="sumC">0</b>/<span id="gC">0</span><span class="g">g</span></div>
+        </div>
+        <div class="macro">
+          <div class="macro-top">
+            <span class="dot dot-f"></span><span>Fett</span>
+          </div>
+          <div class="macro-val"><b id="sumF">0</b>/<span id="gF">0</span><span class="g">g</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Cut Countdown -->
+    <section class="card cut">
+      <div class="cut-head">
+        <div class="cut-label">CUT COUNTDOWN</div>
+        <button id="commitDay" class="btn btn-warn">Defizit verbuchen</button>
+      </div>
+
+      <div class="cut-main">
+        <div class="cut-kpi">
+          <div class="cut-line">
+            <span class="muted">Restbudget</span>
+            <span class="mono"><b id="budgetLeft">–</b> kcal</span>
+          </div>
+          <div class="muted small" id="budgetHint"></div>
+        </div>
+
+        <div class="cut-progress">
+          <div class="bar bar-warn">
+            <div id="cutBar" class="bar-fill bar-fill-warn" style="width:0%"></div>
+          </div>
+          <div class="cut-progress-meta">
+            <span class="muted small">Fortschritt</span>
+            <span class="mono small"><span id="cutPercent">0</span>%</span>
+          </div>
+        </div>
+      </div>
+
+      <details class="cut-details" id="cutDetails">
+        <summary class="cut-summary">
+          <span>Budget</span>
+          <span class="muted small">Maintenance & Reset</span>
+        </summary>
+
+        <div class="cut-form">
+          <div class="field">
+            <label for="defBudget">Defizit-Budget Start (kcal)</label>
+            <input id="defBudget" type="number" min="0" step="100" />
+          </div>
+          <div class="field">
+            <label for="maintKcal">Maintenance (kcal)</label>
+            <input id="maintKcal" type="number" min="0" step="10" />
+          </div>
+
+          <div class="row2">
+            <button id="saveCut" class="btn">Speichern / Reset</button>
+            <button id="clearDay" class="btn btn-ghost">Tag löschen</button>
+          </div>
+
+          <div class="muted small">
+            Verbuchung: max(0, Maintenance − gegessene kcal). Pro Tag nur 1×.
+          </div>
+        </div>
+      </details>
+    </section>
+
+    <!-- Content area (switching views). Overview above stays -->
+    <section class="card content">
+      <div class="content-head">
+        <div class="content-left">
+          <div class="content-title" id="viewTitle">Tagesübersicht</div>
+          <div class="muted small">Datum</div>
+        </div>
+        <div class="content-right">
+          <input id="date" type="date" class="date" />
+        </div>
+      </div>
+
+      <!-- HOME: day list -->
+      <div id="viewHome" class="view">
+        <div class="list" id="dayList"></div>
+        <div class="muted small top8" id="statusLine"></div>
+      </div>
+
+      <!-- SEARCH: OpenFoodFacts -->
+      <div id="viewSearch" class="view hidden">
+        <div class="muted small">Suche in Open Food Facts (DE).</div>
+        <div class="row2 top8">
+          <input id="offQuery" type="text" placeholder="z.B. Haferflocken" />
+          <button id="offSearchBtn" class="btn btn-ghost">Suchen</button>
+        </div>
+
+        <div class="muted small top8" id="offStatus"></div>
+        <div class="list top8" id="offResults"></div>
+      </div>
+
+      <!-- CREATE: add entry -->
+      <div id="viewCreate" class="view hidden">
+        <div class="muted small">Neuen Eintrag hinzufügen (oder aus Scan/Suche übernehmen)</div>
+
+        <div class="field top10">
+          <label for="name">Name</label>
+          <input id="name" type="text" placeholder="Meal / Food" />
+        </div>
+
+        <div class="row2 top10">
+          <div class="field">
+            <label for="tplSelectQuick">Template</label>
+            <select id="tplSelectQuick"></select>
+          </div>
+          <button id="applyTplQuick" class="btn btn-ghost">Anwenden</button>
+        </div>
+
+        <div class="row3 top10">
+          <div class="field">
+            <label for="grams">Gramm</label>
+            <input id="grams" type="number" min="0" step="1" placeholder="z.B. 250" />
+          </div>
+          <div class="field">
+            <label for="kcal">kcal</label>
+            <input id="kcal" type="number" min="0" step="1" />
+          </div>
+          <label class="pill toggle">
+            <input id="manualKcal" type="checkbox" />
+            kcal manuell
+          </label>
+        </div>
+
+        <div class="row3 top10">
+          <div class="field">
+            <label for="p">Protein (g)</label>
+            <input id="p" type="number" min="0" step="0.1" />
+          </div>
+          <div class="field">
+            <label for="c">Carbs (g)</label>
+            <input id="c" type="number" min="0" step="0.1" />
+          </div>
+          <div class="field">
+            <label for="f">Fett (g)</label>
+            <input id="f" type="number" min="0" step="0.1" />
+          </div>
+        </div>
+
+        <button id="add" class="btn top12">Hinzufügen</button>
+
+        <details class="top14">
+          <summary class="muted">Templates verwalten</summary>
+          <div class="top10">
+            <div class="row2">
+              <select id="tplSelect"></select>
+              <button id="tplLoad" class="btn btn-ghost">Laden</button>
+            </div>
+
+            <div class="row2 top10">
+              <input id="tplName" type="text" placeholder="Template-Name" />
+              <input id="tplBaseG" type="number" min="1" step="1" placeholder="Basisgramm (z.B. 100)" />
+            </div>
+
+            <div class="row2 top10">
+              <button id="tplSave" class="btn">Template speichern</button>
+              <button id="tplDelete" class="btn btn-danger">Template löschen</button>
+            </div>
+
+            <div class="muted small top8">Tipp: OFF-Suche → übernehmen (100g) → als Template speichern.</div>
+          </div>
+        </details>
+      </div>
+
+      <!-- SCAN -->
+      <div id="viewScan" class="view hidden">
+        <div class="muted small">Barcode scannen (Android Chrome). Nach Scan wird Eintrag vorbereitet.</div>
+
+        <div class="row2 top10">
+          <button id="scanBtn" class="btn">📷 Scannen starten</button>
+          <button id="scanStop" class="btn btn-danger">Stop</button>
+        </div>
+
+        <div id="scanStatus" class="muted small top8"></div>
+
+        <div id="scannerWrap" class="scanner hidden top10">
+          <video id="scanVideo" playsinline></video>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Bottom Nav (fixed) -->
+  <nav class="bottomnav">
+    <button class="navbtn" data-view="scan" aria-label="Scannen">
+      <span class="navicon">▦</span>
+      <span class="navtxt">Scannen</span>
+    </button>
+
+    <button class="navbtn" data-view="search" aria-label="Lebensmittel suchen">
+      <span class="navicon">⌕</span>
+      <span class="navtxt">Lebensmittel</span>
+      <span class="navsub">suchen</span>
+    </button>
+
+    <button class="navbtn" data-view="create" aria-label="Neues erstellen">
+      <span class="navicon">＋</span>
+      <span class="navtxt">Neues</span>
+      <span class="navsub">erstellen</span>
+    </button>
+  </nav>
+
+  <script src="app.js"></script>
+</body>
+</html>
