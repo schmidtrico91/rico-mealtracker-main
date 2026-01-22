@@ -722,6 +722,8 @@ function wire(){
 
     const name=($("name")?.value||"").trim() || "Eintrag";
     const grams=num("grams");
+    if(!(grams>0)) grams =100;
+    $("grams").value=grams;
     const p=num("p"), c=num("c"), f=num("f");
 
     const manual=$("manualKcal")?.checked;
@@ -1023,6 +1025,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
   wireInstallFab();
   render();
 });
+
 
 
 
