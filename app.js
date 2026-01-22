@@ -101,6 +101,14 @@ function prefillGoalsModal(){
   $("goalC").value = s.goals.c ?? 0;
   $("goalF").value = s.goals.f ?? 0;
 }
+function updateGoalsKcalFromMacros(){
+  const p = parseFloat(($("goalP")?.value || "0").replace(",", ".")) || 0;
+  const c = parseFloat(($("goalC")?.value || "0").replace(",", ".")) || 0;
+  const f = parseFloat(($("goalF")?.value || "0").replace(",", ".")) || 0;
+  const kcal = Math.round(calcKcalFromMacros(p, c, f));
+  if ($("goalsKcalFromMacros")) $("goalsKcalFromMacros").textContent = String(kcal);
+}
+ 
 function prefillCutModal(){
   const s = initDefaults(loadState());
   $("cutMaint").value = s.cut.maintenance ?? 0;
@@ -836,3 +844,4 @@ document.addEventListener("DOMContentLoaded", ()=>{
   wireInstallFab();
   render();
 });
+
