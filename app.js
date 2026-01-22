@@ -270,16 +270,18 @@ async function offSearch(q){
       </div>
     `;
     el.querySelector("[data-use]").onclick = () => {
-      // Fill create form as 100g base
-      document.getElementById("name").value = name;
-      document.getElementById("grams").value = 100;
-      document.getElementById("p").value = round1(p100);
-      document.getElementById("c").value = round1(c100);
-      document.getElementById("f").value = round1(f100);
-      document.getElementById("manualKcal").checked = false;
-      updateKcalFromMacros();
-      setView("create");
-    };
+  document.getElementById("name").value = name;
+ 
+  // Basis auf 100g setzen
+  document.getElementById("grams").value = 100;
+  setPer100Base(p100, c100, f100, kcal100);
+ 
+  // Felder füllen & kcal berechnen
+  applyPer100ScalingIfPresent();
+ 
+  setView("create");
+};
+ 
     results.appendChild(el);
   }
 }
@@ -306,14 +308,14 @@ async function startBarcodeScan(){
   const statusEl = document.getElementById("scanStatus");
   const wrap = document.getElementById("scannerWrap");
   const video = document.getElementById("scanVideo");
-
+ 
   if (!("BarcodeDetector" in window)){
     statusEl.textContent = "BarcodeDetector nicht verfügbar (Fallback-Library später möglich).";
     return;
   }
-
+ 
   const detector = new BarcodeDetector({ formats: ["ean_13","ean_8","upc_a","upc_e","code_128"] });
-
+ 
   try{
     scanStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" }, audio: false });
     video.srcObject = scanStream;
@@ -321,52 +323,61 @@ async function startBarcodeScan(){
     wrap.classList.remove("hidden");
     scanRunning = true;
     statusEl.textContent = "Scanner läuft…";
-
+ 
     const tick = async () => {
       if (!scanRunning) return;
+ 
       try{
         const codes = await detector.detect(video);
+ 
         if (codes && codes.length){
           const code = codes[0].rawValue;
           statusEl.textContent = `Gefunden: ${code}`;
           stopBarcodeScan();
-
+ 
           const off = await fetchOFFByBarcode(code);
+ 
+          // --- WICHTIG: per-100g Basis setzen + dynamisch skalieren ---
           document.getElementById("name").value = off.name;
           document.getElementById("grams").value = 100;
-          document.getElementById("p").value = round1(off.p100);
-          document.getElementById("c").value = round1(off.c100);
-          document.getElementById("f").value = round1(off.f100);
-          document.getElementById("manualKcal").checked = false;
-          updateKcalFromMacros();
-
+ 
+          // speichert die 100g-Werte "unsichtbar" als Basis
+          setPer100Base(off.p100, off.c100, off.f100, off.kcal100);
+ 
+          // füllt P/C/F passend zu current grams (hier 100g) + setzt kcal (auto)
+          applyPer100ScalingIfPresent();
+ 
           setView("create");
           return;
         }
       }catch(e){
         statusEl.textContent = "Scan-Fehler: " + (e?.message || e);
       }
+ 
       requestAnimationFrame(tick);
     };
-
+ 
     requestAnimationFrame(tick);
   }catch(e){
     statusEl.textContent = "Kamera nicht verfügbar: " + (e?.message || e);
   }
 }
-
+ 
 function stopBarcodeScan(){
   scanRunning = false;
   const wrap = document.getElementById("scannerWrap");
   const video = document.getElementById("scanVideo");
-
+ 
   if (video) video.pause();
+ 
   if (scanStream){
     scanStream.getTracks().forEach(t => t.stop());
     scanStream = null;
   }
+ 
   wrap.classList.add("hidden");
 }
+ 
 
 // ---------- Render ----------
 function render(){
@@ -615,7 +626,7 @@ function wire(){
   document.querySelectorAll(".navbtn").forEach(btn => {
     btn.addEventListener("click", () => setView(btn.dataset.view));
   });
-
+ 
   // date change
   document.getElementById("date").addEventListener("change", (e) => {
     const s = loadState(); initDefaults(s);
@@ -624,15 +635,23 @@ function wire(){
     editingId = null;
     render();
   });
-
+ 
   // macros -> kcal auto
+  // WICHTIG: wenn User Makros tippt => per100-Automatik deaktivieren, sonst "kämpfst" du gegen die App
   ["p","c","f"].forEach(id => {
     const el = document.getElementById(id);
-    el.addEventListener("input", updateKcalFromMacros);
-    el.addEventListener("change", updateKcalFromMacros);
+    el.addEventListener("input", () => {
+      clearPer100Base();
+      updateKcalFromMacros();
+    });
+    el.addEventListener("change", () => {
+      clearPer100Base();
+      updateKcalFromMacros();
+    });
   });
+ 
   document.getElementById("manualKcal").addEventListener("change", () => updateKcalFromMacros());
-
+ 
   // apply template
   document.getElementById("applyTplQuick").onclick = () => {
     const s = loadState(); initDefaults(s);
@@ -640,19 +659,24 @@ function wire(){
     if (!id) return;
     const tpl = getTemplateById(s, id);
     const grams = num("grams") > 0 ? num("grams") : tpl.baseGrams;
+ 
+    // Template anwenden => per100-Automatik aus
+    clearPer100Base();
     applyTemplateToForm(tpl, grams);
   };
-
+ 
   // templates manage load/delete/save
   document.getElementById("tplLoad").onclick = () => {
     const s = loadState(); initDefaults(s);
     const id = document.getElementById("tplSelect").value;
     if (!id) return;
     const tpl = getTemplateById(s, id);
+ 
+    clearPer100Base();
     applyTemplateToForm(tpl, tpl.baseGrams);
     document.getElementById("tplSelectQuick").value = id;
   };
-
+ 
   document.getElementById("tplDelete").onclick = () => {
     const s = loadState(); initDefaults(s);
     const id = document.getElementById("tplSelect").value;
@@ -664,18 +688,18 @@ function wire(){
     saveState(s);
     render();
   };
-
+ 
   document.getElementById("tplSave").onclick = () => {
     const s = loadState(); initDefaults(s);
-
+ 
     const name = (document.getElementById("tplName").value || "").trim();
     const baseGrams = parseFloat(String(document.getElementById("tplBaseG").value||"").replace(",", "."));
     if (!name) return alert("Bitte Template-Name eingeben.");
     if (!Number.isFinite(baseGrams) || baseGrams <= 0) return alert("Bitte gültiges Basisgramm eingeben (z.B. 100).");
-
+ 
     const p = num("p"), c = num("c"), f = num("f");
     if ((p+c+f) <= 0) return alert("Bitte erst Makros (P/C/F) eingeben.");
-
+ 
     const existing = s.templates.find(t => t.name.toLowerCase() === name.toLowerCase());
     if (existing){
       if (!confirm(`Template "${name}" existiert. Überschreiben?`)) return;
@@ -684,36 +708,36 @@ function wire(){
     } else {
       s.templates.push({ id: uid(), name, baseGrams, p, c, f });
     }
-
+ 
     saveState(s);
     document.getElementById("tplName").value = "";
     document.getElementById("tplBaseG").value = "";
     render();
   };
-
+ 
   // add entry
   document.getElementById("add").onclick = () => {
     const s = loadState(); initDefaults(s);
     const date = ensureDateFilled();
     const key = dayKey(date);
     if (!s[key]) s[key] = [];
-
+ 
     const name = (document.getElementById("name").value || "").trim() || "Eintrag";
     const grams = num("grams");
     const p = num("p"), c = num("c"), f = num("f");
     const manual = document.getElementById("manualKcal").checked;
     const kcal = manual ? num("kcal") : calcKcalFromMacros(p,c,f);
-
+ 
     s[key].push({ id: uid(), name, grams, p, c, f, kcal: Math.round(kcal), manualKcal: manual });
     saveState(s);
-
+ 
     // clear name for quick next
     document.getElementById("name").value = "";
     editingId = null;
-
+ 
     setView("home");
   };
-
+ 
   // clear day
   document.getElementById("clearDay").onclick = () => {
     const s = loadState(); initDefaults(s);
@@ -724,7 +748,7 @@ function wire(){
     editingId = null;
     render();
   };
-
+ 
   // cut save/reset
   document.getElementById("saveCut").onclick = () => {
     const s = loadState(); initDefaults(s);
@@ -736,12 +760,12 @@ function wire(){
     saveState(s);
     render();
   };
-
+ 
   // commit day deficit
   document.getElementById("commitDay").onclick = () => {
     const s = loadState(); initDefaults(s);
     const date = ensureDateFilled();
-
+ 
     if (!s.cut.budgetStart || s.cut.budgetStart <= 0){
       alert("Bitte erst ein Defizit-Budget setzen (Budget-Menü).");
       return;
@@ -750,19 +774,19 @@ function wire(){
       alert("Heute wurde bereits verbucht.");
       return;
     }
-
+ 
     const entries = s[dayKey(date)] || [];
     const sums = sumEntries(entries);
     const maint = s.cut.maintenance || 0;
     const dayDef = Math.max(0, maint - sums.kcal);
-
+ 
     s.cut.budgetLeft = Math.max(0, (s.cut.budgetLeft || 0) - dayDef);
     s.cut.committedDays[date] = true;
-
+ 
     saveState(s);
     render();
   };
-
+ 
   // OFF search
   document.getElementById("offSearchBtn").onclick = async () => {
     const q = (document.getElementById("offQuery").value || "").trim();
@@ -773,14 +797,15 @@ function wire(){
       document.getElementById("offStatus").textContent = "Fehler: " + (e?.message || e);
     }
   };
-
+ 
   // Scan
   document.getElementById("scanBtn").onclick = startBarcodeScan;
   document.getElementById("scanStop").onclick = stopBarcodeScan;
-
-  // grams scaling when template is selected
+ 
+  // grams scaling (Template ODER per100 OFF/Scan)
   wireScalingFromGrams();
 }
+ 
 
 // ---------- Boot ----------
 (function boot(){
@@ -795,5 +820,6 @@ function wire(){
   updateKcalFromMacros();
   render();
 })();
+
 
 
