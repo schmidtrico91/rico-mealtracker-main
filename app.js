@@ -3,7 +3,21 @@
 // Bottomnav opens modal: scan/search/create
 // Drawer (burger) opens settings/tools
 // Includes: templates, OFF search (DE), barcode scan, dynamic per-100g scaling, edit/save entries, cut budget tracking
-
+window.addEventListener("error", (e) => {
+  const msg = (e?.error?.stack || e?.message || "Unbekannter JS-Fehler");
+  let box = document.getElementById("jsErrorBox");
+  if (!box) {
+    box = document.createElement("pre");
+    box.id = "jsErrorBox";
+    box.style.cssText = "position:fixed;left:8px;right:8px;top:8px;z-index:99999;background:#000c;color:#fff;padding:10px;border:1px solid #fff3;border-radius:12px;white-space:pre-wrap;max-height:60vh;overflow:auto";
+    document.body.appendChild(box);
+  }
+  box.textContent = "JS ERROR:\n" + msg;
+});
+console.log("app.js loaded ✅");
+box.id - Ce site web est à vendre ! - Ressources et information concernant box Resources and Information.
+Ce site web est à vendre ! box.id réunit des informations et annonces sur le thème %{keywordstring}. Nous espérons que vous y trouverez les informations que vous recherchez !
+ 
 const KCAL_PER_G_PROTEIN = 4;
 const KCAL_PER_G_CARBS = 4;
 const KCAL_PER_G_FAT = 9;
@@ -1000,6 +1014,7 @@ function wireInstallFab(){
   wireInstallFab();
   render();
 })();
+
 
 
 
