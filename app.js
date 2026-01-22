@@ -240,7 +240,9 @@ async function offSearch(q){
     `?search_terms=${encodeURIComponent(q)}` +
     "&countries_tags=de" +
     "&page_size=20" +
-    "&fields=product_name,brands,code,nutriments";
+    "&fields=product_name,brands,code,nutriments" + 
+    "&fields=product_name,brands,nutriments.proteins_100g,nutriments.carbohydrates_100g,nutriments.fat_100g,nutriments.energy-kcal_100g,nutriments.energy_100g"
+ ;
 
   const res = await fetch(url);
   if (!res.ok) throw new Error("OFF Anfrage fehlgeschlagen");
@@ -823,6 +825,7 @@ function wire(){
   updateKcalFromMacros();
   render();
 })();
+
 
 
 
