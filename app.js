@@ -30,10 +30,50 @@ function initDefaults(s){
   if (!s.cut) s.cut = { maintenance: 3000, budgetStart: 0, budgetLeft: 0, committedDays: {} };
   if (!s.templates) s.templates = [];
   if (!s.lastDate) s.lastDate = todayISO();
+  if (!s.recents) s.recents =[];
   return s;
 }
 
 function setText(id, txt){ const el=$(id); if(el) el.textContent=String(txt); }
+
+function refreshQuickTemplateSelect(){
+  const s = initDefaults(loadState());
+  const sel = $("tplSelectQuick");
+  if(!sel) return;
+ 
+  sel.innerHTML = "";
+  const o0 = document.createElement("option");
+  o0.value = "";
+  o0.textContent = "— wählen —";
+  sel.appendChild(o0);
+ 
+  (s.templates||[]).forEach(t=>{
+    const o=document.createElement("option");
+    o.value=t.id;
+    o.textContent=t.name;
+    sel.appendChild(o);
+  });
+}
+ 
+function refreshRecentSelect(){
+  const s = initDefaults(loadState());
+  const sel = $("recentSelect");
+  if(!sel) return;
+ 
+  sel.innerHTML = "";
+  const o0 = document.createElement("option");
+  o0.value = "";
+  o0.textContent = "— wählen —";
+  sel.appendChild(o0);
+ 
+  (s.recents||[]).forEach(r=>{
+    const o=document.createElement("option");
+    o.value=r.id;
+    o.textContent=r.name;
+    sel.appendChild(o);
+  });
+}
+ 
 
 function num(id){
   const el=$(id);
@@ -930,6 +970,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
   wireInstallFab();
   render();
 });
+
 
 
 
