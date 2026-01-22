@@ -367,10 +367,12 @@ input:focus, select:focus{
 }
 
 .btn-warn{
-  border: 1px solid rgba(243,213,107,.45);
-  background: linear-gradient(180deg, rgba(243,213,107,.22), rgba(243,213,107,.10));
+  border: 1px solid rgba(243,213,107,.55);
+  background: linear-gradient(90deg, var(--warn), var(--warn2));
   color: #111;
+  box-shadow: 0 10px 24px rgba(243,213,107,.18);
 }
+ 
 
 /* Pill toggle */
 .pill{
@@ -586,3 +588,4 @@ input:focus, select:focus{
 @media (min-width: 520px){
   .app{ padding-left: 18px; padding-right: 18px; }
 }
+
