@@ -80,7 +80,8 @@ function applyRecentToCreate(recentId){
   if(!r) return;
  
   $("name").value = r.name || "";
-  $("grams").value = r.grams ?? 100;
+  const g=(Number.isFinite(+r.grams) && +r.grams > 0)? +r.grams:100;
+  $("grams").value = g;
  
   // wenn per100 vorhanden -> Base setzen und skalieren
   if(r.p100!=null || r.c100!=null || r.f100!=null){
@@ -1022,6 +1023,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
   wireInstallFab();
   render();
 });
+
 
 
 
