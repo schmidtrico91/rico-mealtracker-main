@@ -589,3 +589,9 @@ input:focus, select:focus{
   .app{ padding-left: 18px; padding-right: 18px; }
 }
 
+input.readonly {
+  background: rgba(255,255,255,0.05);
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+ 
