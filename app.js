@@ -284,31 +284,39 @@ function applyPer100ScalingIfPresent(){
 async function offSearch(q){
   const status=$("offStatus"), box=$("offResults");
   if(!status || !box) return;
-
+ 
   status.textContent="Suche…";
   box.innerHTML="";
-
-  const url="https://world.openfoodfacts.org/cgi/search.pl"
-    +`?search_terms=${encodeURIComponent(q)}&search_simple=1&action=process&json=1&page_size=20&fields=product_name,nutriments,brands`;
-
-  const r=await fetch(url);
+ 
+  const url =
+    "https://world.openfoodfacts.org/api/v2/search"
+    + `?search_terms=${encodeURIComponent(q)}`
+    + `&page_size=20`
+    + `&fields=product_name,brands,nutriments`;
+ 
+  const r = await fetch(url);
   if(!r.ok) throw new Error(`OFF Fehler (${r.status})`);
-  const j=await r.json();
-
-  const products=(j.products||[]).filter(p=>p && p.nutriments);
+  const j = await r.json();
+ 
+  const products = (j.products || []).filter(p => p && p.nutriments);
   if(!products.length){ status.textContent="Keine Treffer."; return; }
-
-  status.textContent=`${products.length} Treffer`;
-  box.innerHTML=products.map(p=>{
+ 
+  status.textContent=`${products.length} Treffer für „${q}“`;
+  box.innerHTML = products.map(p=>{
     const name=(p.product_name||"Unbenannt").trim();
     const brand=(p.brands||"").trim();
     const n=p.nutriments||{};
     const p100=normalizeOFF(parseFloat(n.proteins_100g));
     const c100=normalizeOFF(parseFloat(n.carbohydrates_100g));
     const f100=normalizeOFF(parseFloat(n.fat_100g));
-    const kcal100=normalizeOFF(parseFloat(n["energy-kcal_100g"])) || normalizeOFF(parseFloat(n.energy_100g)/4.184);
-    const kcalShow = kcal100 ? Math.round(kcal100) : Math.round(calcKcalFromMacros(p100,c100,f100));
-
+    const kcal100 =
+      normalizeOFF(parseFloat(n["energy-kcal_100g"])) ||
+      (normalizeOFF(parseFloat(n.energy_100g)) ? normalizeOFF(parseFloat(n.energy_100g))/4.184 : 0);
+ 
+    const kcalShow = kcal100
+      ? Math.round(kcal100)
+      : Math.round(calcKcalFromMacros(p100,c100,f100));
+ 
     return `
       <div class="item">
         <div class="item-main">
@@ -320,7 +328,7 @@ async function offSearch(q){
         </div>
       </div>`;
   }).join("");
-
+ 
   [...box.querySelectorAll('[data-use="1"]')].forEach((btn,idx)=>{
     btn.addEventListener("click",()=>{
       const p=products[idx], n=p.nutriments||{};
@@ -328,16 +336,19 @@ async function offSearch(q){
       const p100=normalizeOFF(parseFloat(n.proteins_100g));
       const c100=normalizeOFF(parseFloat(n.carbohydrates_100g));
       const f100=normalizeOFF(parseFloat(n.fat_100g));
-      const kcal100=normalizeOFF(parseFloat(n["energy-kcal_100g"])) || normalizeOFF(parseFloat(n.energy_100g)/4.184);
-
-      $("name").value=name;
-      $("grams").value=100;
+      const kcal100 =
+        normalizeOFF(parseFloat(n["energy-kcal_100g"])) ||
+        (normalizeOFF(parseFloat(n.energy_100g)) ? normalizeOFF(parseFloat(n.energy_100g))/4.184 : 0);
+ 
+      $("name").value = name;
+      $("grams").value = 100;
       setPer100Base(p100,c100,f100,kcal100);
       applyPer100ScalingIfPresent();
       openModal("create");
     });
   });
 }
+ 
 
 async function fetchOFFByBarcode(code){
   const url=`https://world.openfoodfacts.org/api/v2/product/${encodeURIComponent(code)}.json?fields=product_name,nutriments,brands`;
@@ -919,6 +930,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
   wireInstallFab();
   render();
 });
+
 
 
 
