@@ -675,3 +675,24 @@ input:focus, select:focus{
 }
 
 .hidden{ display: none !important; }
+
+/* Install FAB (floating action button) */
+.installFab{
+  position: fixed;
+  right: 14px;
+  bottom: calc(var(--navH) + 14px + env(safe-area-inset-bottom));
+  z-index: 120;
+ 
+  border: 0;
+  border-radius: 999px;
+  padding: 12px 14px;
+  font-weight: 900;
+  color: #061016;
+ 
+  background: linear-gradient(180deg, var(--acc), var(--acc2));
+  box-shadow: 0 16px 50px rgba(0,0,0,.55);
+}
+ 
+.installFab:active{ transform: translateY(1px); }
+ 
+
