@@ -6,25 +6,85 @@
   <title>Rico’s Mealtracker</title>
 
   <!-- PWA essentials -->
- <link rel="manifest" href="/rico-mealtracker-main/manifest.webmanifest">
-<meta name="theme-color" content="#22d3ee">
-<link rel="icon" sizes="192x192" href="/rico-mealtracker-main/icons/icon-192.png">
-<link rel="apple-touch-icon" href="/rico-mealtracker-main/icons/icon-192.png">
-
+  <link rel="manifest" href="/rico-mealtracker-main/manifest.webmanifest">
+  <meta name="theme-color" content="#22d3ee">
+  <link rel="icon" sizes="192x192" href="/rico-mealtracker-main/icons/icon-192.png">
+  <link rel="apple-touch-icon" href="/rico-mealtracker-main/icons/icon-192.png">
 
   <link rel="stylesheet" href="style.css" />
 </head>
+
 <body>
-  <!-- Sticky Top -->
-  <header class="topbar">
-    <div class="brand">
-      <span class="brand-mark">R</span>
-      <span class="brand-title">Rico's Mealtracker</span>
+
+  <!-- Drawer + overlay -->
+  <div id="overlay" class="overlay hidden"></div>
+
+  <aside id="drawer" class="drawer hidden" aria-hidden="true">
+    <div class="drawer-head">
+      <div class="drawer-brand">
+        <span class="brand-mark">R</span>
+        <span class="brand-title brush">Rico’s Mealtracker</span>
+      </div>
+      <button id="drawerClose" class="iconbtn" aria-label="Menü schließen">✕</button>
     </div>
+
+    <div class="drawer-section">
+      <div class="drawer-title">Tagesziele</div>
+      <button class="drawer-item" id="openGoals">Ziele bearbeiten</button>
+      <button class="drawer-item" id="resetGoals">Ziele zurücksetzen</button>
+    </div>
+
+    <div class="drawer-section">
+      <div class="drawer-title">Cut-Countdown</div>
+      <button class="drawer-item" id="openCut">Cut Budget / Maintenance</button>
+      <button class="drawer-item" id="drawerCommit">Defizit heute buchen</button>
+      <button class="drawer-item danger" id="resetCut">Cut Reset</button>
+    </div>
+
+    <div class="drawer-section">
+      <div class="drawer-title">Templates</div>
+      <button class="drawer-item" id="openTemplates">Template Manager</button>
+    </div>
+
+    <div class="drawer-section">
+      <div class="drawer-title">Daten & Backup</div>
+      <button class="drawer-item" id="exportData">Export (JSON)</button>
+      <label class="drawer-item filelike">
+        Import (JSON)
+        <input id="importFile" type="file" accept="application/json" hidden>
+      </label>
+      <button class="drawer-item danger" id="wipeAll">Alles löschen</button>
+    </div>
+
+    <div class="drawer-section">
+      <div class="drawer-title">App</div>
+      <button class="drawer-item" id="forceUpdate">Update erzwingen</button>
+      <div class="drawer-note" id="appVersion">Version: –</div>
+    </div>
+
+    <div class="drawer-section">
+      <div class="drawer-title">Hilfe</div>
+      <div class="drawer-note">
+        Scannen/Suchen/Neu öffnen als Modal. Kopf bleibt sichtbar.
+      </div>
+    </div>
+  </aside>
+
+  <!-- Topbar -->
+  <header class="topbar">
+    <button id="burger" class="iconbtn" aria-label="Menü öffnen">☰</button>
+
+    <div class="brand center">
+      <span class="brand-title brush">Rico’s Mealtracker</span>
+    </div>
+
+    <div class="topbar-right"></div>
   </header>
 
+  <!-- App -->
   <main class="app">
-    <!-- Always-visible overview -->
+
+    <!-- Tagesübersicht / Ziele -->
     <section class="card hero">
       <div class="hero-title">Kalorien</div>
 
@@ -41,21 +101,15 @@
 
       <div class="macro-row">
         <div class="macro">
-          <div class="macro-top">
-            <span class="dot dot-p"></span><span>Protein</span>
-          </div>
+          <div class="macro-top"><span class="dot dot-p"></span><span>Protein</span></div>
           <div class="macro-val"><b id="sumP">0</b>/<span id="gP">0</span><span class="g">g</span></div>
         </div>
         <div class="macro">
-          <div class="macro-top">
-            <span class="dot dot-c"></span><span>Carbs</span>
-          </div>
+          <div class="macro-top"><span class="dot dot-c"></span><span>Carbs</span></div>
           <div class="macro-val"><b id="sumC">0</b>/<span id="gC">0</span><span class="g">g</span></div>
         </div>
         <div class="macro">
-          <div class="macro-top">
-            <span class="dot dot-f"></span><span>Fett</span>
-          </div>
+          <div class="macro-top"><span class="dot dot-f"></span><span>Fett</span></div>
           <div class="macro-val"><b id="sumF">0</b>/<span id="gF">0</span><span class="g">g</span></div>
         </div>
       </div>
@@ -87,214 +141,179 @@
           </div>
         </div>
       </div>
-
-      <details class="cut-details" id="cutDetails">
-        <summary class="cut-summary">
-          <span>Budget</span>
-          <span class="muted small">Maintenance & Reset</span>
-        </summary>
-
-        <div class="cut-form">
-          <div class="field">
-            <label for="defBudget">Defizit-Budget Start (kcal)</label>
-            <input id="defBudget" type="number" min="0" step="100" />
-          </div>
-          <div class="field">
-            <label for="maintKcal">Maintenance (kcal)</label>
-            <input id="maintKcal" type="number" min="0" step="10" />
-          </div>
-
-          <div class="row2">
-            <button id="saveCut" class="btn">Speichern / Reset</button>
-            <button id="clearDay" class="btn btn-ghost">Tag löschen</button>
-          </div>
-
-          <div class="muted small">
-            Verbuchung: max(0, Maintenance − gegessene kcal). Pro Tag nur 1×.
-          </div>
-        </div>
-      </details>
     </section>
 
-    <!-- Content area -->
+    <!-- Datum Segment (NEU, eigener Block) -->
+    <section class="card datecard">
+      <div class="datecard-head">
+        <div>
+          <div class="content-title">Tag auswählen</div>
+          <div class="muted small">Daten & Verbuchung gelten für dieses Datum</div>
+        </div>
+        <input id="date" type="date" class="date" />
+      </div>
+    </section>
+
+    <!-- Tagesliste -->
     <section class="card content">
       <div class="content-head">
-        <div class="content-left">
-          <div class="content-title" id="viewTitle">Tagesübersicht</div>
-          <div class="muted small">Datum</div>
-        </div>
-        <div class="content-right">
-          <input id="date" type="date" class="date" />
+        <div>
+          <div class="content-title">Tagesübersicht</div>
+          <div class="muted small" id="statusLine"></div>
         </div>
       </div>
 
       <div id="viewHome" class="view">
         <div class="list" id="dayList"></div>
-        <div class="muted small top8" id="statusLine"></div>
-      </div>
-
-      <div id="viewSearch" class="view hidden">
-        <div class="muted small">Suche in Open Food Facts (DE).</div>
-        <div class="row2 top8">
-          <input id="offQuery" type="text" placeholder="z.B. Haferflocken" />
-          <button id="offSearchBtn" class="btn btn-ghost">Suchen</button>
-        </div>
-
-        <div class="muted small top8" id="offStatus"></div>
-        <div class="list top8" id="offResults"></div>
-      </div>
-
-      <div id="viewCreate" class="view hidden">
-        <div class="muted small">Neuen Eintrag hinzufügen (oder aus Scan/Suche übernehmen)</div>
-
-        <div class="field top10">
-          <label for="name">Name</label>
-          <input id="name" type="text" placeholder="Meal / Food" />
-        </div>
-
-        <div class="row2 top10">
-          <div class="field">
-            <label for="tplSelectQuick">Template</label>
-            <select id="tplSelectQuick"></select>
-          </div>
-          <button id="applyTplQuick" class="btn btn-ghost">Anwenden</button>
-        </div>
-
-        <div class="row3 top10">
-          <div class="field">
-            <label for="grams">Gramm</label>
-            <input id="grams" type="number" min="0" step="1" placeholder="z.B. 250" />
-          </div>
-          <div class="field">
-            <label for="kcal">kcal</label>
-            <input id="kcal" type="number" min="0" step="1" />
-          </div>
-          <label class="pill toggle">
-            <input id="manualKcal" type="checkbox" />
-            kcal manuell
-          </label>
-        </div>
-
-        <div class="row3 top10">
-          <div class="field">
-            <label for="p">Protein (g)</label>
-            <input id="p" type="number" min="0" step="0.1" />
-          </div>
-          <div class="field">
-            <label for="c">Carbs (g)</label>
-            <input id="c" type="number" min="0" step="0.1" />
-          </div>
-          <div class="field">
-            <label for="f">Fett (g)</label>
-            <input id="f" type="number" min="0" step="0.1" />
-          </div>
-        </div>
-
-        <button id="add" class="btn top12">Hinzufügen</button>
-
-        <details class="top14">
-          <summary class="muted">Templates verwalten</summary>
-          <div class="top10">
-            <div class="row2">
-              <select id="tplSelect"></select>
-              <button id="tplLoad" class="btn btn-ghost">Laden</button>
-            </div>
-
-            <div class="row2 top10">
-              <input id="tplName" type="text" placeholder="Template-Name" />
-              <input id="tplBaseG" type="number" min="1" step="1" placeholder="Basisgramm (z.B. 100)" />
-            </div>
-
-            <div class="row2 top10">
-              <button id="tplSave" class="btn">Template speichern</button>
-              <button id="tplDelete" class="btn btn-danger">Template löschen</button>
-            </div>
-
-            <div class="muted small top8">Tipp: OFF-Suche → übernehmen (100g) → als Template speichern.</div>
-          </div>
-        </details>
-      </div>
-
-      <div id="viewScan" class="view hidden">
-        <div class="muted small">Barcode scannen (Android Chrome). Nach Scan wird Eintrag vorbereitet.</div>
-
-        <div class="row2 top10">
-          <button id="scanBtn" class="btn">📷 Scannen starten</button>
-          <button id="scanStop" class="btn btn-danger">Stop</button>
-        </div>
-
-        <div id="scanStatus" class="muted small top8"></div>
-
-        <div id="scannerWrap" class="scanner hidden top10">
-          <video id="scanVideo" playsinline></video>
+        <div id="emptyHint" class="emptyHint hidden">
+          Du hast heute noch nichts gegessen.
         </div>
       </div>
     </section>
+
   </main>
 
+  <!-- Bottom Nav fixed -->
   <nav class="bottomnav">
-    <button class="navbtn" data-view="scan" aria-label="Scannen">
+    <button class="navbtn" data-modal="scan" aria-label="Scannen">
       <span class="navicon">▦</span>
       <span class="navtxt">Scannen</span>
     </button>
 
-    <button class="navbtn" data-view="search" aria-label="Lebensmittel suchen">
+    <button class="navbtn" data-modal="search" aria-label="Lebensmittel suchen">
       <span class="navicon">⌕</span>
-      <span class="navtxt">Lebensmittel</span>
-      <span class="navsub">suchen</span>
+      <span class="navtxt">Suchen</span>
     </button>
 
-    <button class="navbtn" data-view="create" aria-label="Neues erstellen">
+    <button class="navbtn" data-modal="create" aria-label="Neues erstellen">
       <span class="navicon">＋</span>
-      <span class="navtxt">Neues</span>
-      <span class="navsub">erstellen</span>
+      <span class="navtxt">Neu</span>
     </button>
   </nav>
+
+  <!-- Modal container -->
+  <section id="modal" class="modal hidden" aria-hidden="true">
+    <div class="modal-sheet">
+      <div class="modal-head">
+        <div class="modal-title" id="modalTitle">Modal</div>
+        <button id="modalClose" class="iconbtn" aria-label="Schließen">✕</button>
+      </div>
+
+      <div class="modal-body">
+
+        <!-- SEARCH VIEW -->
+        <div id="viewSearch" class="view hidden">
+          <div class="muted small">Suche in Open Food Facts (DE).</div>
+          <div class="row2 top8">
+            <input id="offQuery" type="text" placeholder="z.B. Haferflocken" />
+            <button id="offSearchBtn" class="btn btn-ghost">Suchen</button>
+          </div>
+          <div class="muted small top8" id="offStatus"></div>
+          <div class="list top8" id="offResults"></div>
+        </div>
+
+        <!-- CREATE VIEW -->
+        <div id="viewCreate" class="view hidden">
+          <div class="muted small">Neuen Eintrag hinzufügen (oder aus Scan/Suche übernehmen)</div>
+
+          <div class="field top10">
+            <label for="name">Name</label>
+            <input id="name" type="text" placeholder="Meal / Food" />
+          </div>
+
+          <div class="row2 top10">
+            <div class="field">
+              <label for="tplSelectQuick">Template</label>
+              <select id="tplSelectQuick"></select>
+            </div>
+            <button id="applyTplQuick" class="btn btn-ghost">Anwenden</button>
+          </div>
+
+          <div class="row3 top10">
+            <div class="field">
+              <label for="grams">Gramm</label>
+              <input id="grams" type="number" min="0" step="1" placeholder="z.B. 250" />
+            </div>
+            <div class="field">
+              <label for="kcal">kcal</label>
+              <input id="kcal" type="number" min="0" step="1" />
+            </div>
+            <label class="pill toggle">
+              <input id="manualKcal" type="checkbox" />
+              kcal manuell
+            </label>
+          </div>
+
+          <div class="row3 top10">
+            <div class="field">
+              <label for="p">Protein (g)</label>
+              <input id="p" type="number" min="0" step="0.1" />
+            </div>
+            <div class="field">
+              <label for="c">Carbs (g)</label>
+              <input id="c" type="number" min="0" step="0.1" />
+            </div>
+            <div class="field">
+              <label for="f">Fett (g)</label>
+              <input id="f" type="number" min="0" step="0.1" />
+            </div>
+          </div>
+
+          <button id="add" class="btn top12">Hinzufügen</button>
+
+          <details class="top14">
+            <summary class="muted">Templates verwalten</summary>
+            <div class="top10">
+              <div class="row2">
+                <select id="tplSelect"></select>
+                <button id="tplLoad" class="btn btn-ghost">Laden</button>
+              </div>
+
+              <div class="row2 top10">
+                <input id="tplName" type="text" placeholder="Template-Name" />
+                <input id="tplBaseG" type="number" min="1" step="1" placeholder="Basisgramm (z.B. 100)" />
+              </div>
+
+              <div class="row2 top10">
+                <button id="tplSave" class="btn">Template speichern</button>
+                <button id="tplDelete" class="btn btn-danger">Template löschen</button>
+              </div>
+
+              <div class="muted small top8">Tipp: OFF-Suche → übernehmen (100g) → als Template speichern.</div>
+            </div>
+          </details>
+        </div>
+
+        <!-- SCAN VIEW -->
+        <div id="viewScan" class="view hidden">
+          <div class="muted small">Barcode scannen (Android Chrome).</div>
+
+          <div class="row2 top10">
+            <button id="scanBtn" class="btn">📷 Scannen starten</button>
+            <button id="scanStop" class="btn btn-danger">Stop</button>
+          </div>
+
+          <div id="scanStatus" class="muted small top8"></div>
+
+          <div id="scannerWrap" class="scanner hidden top10">
+            <video id="scanVideo" playsinline></video>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
 
   <script src="app.js"></script>
 
   <!-- REQUIRED: Service Worker register -->
   <script>
-  if ("serviceWorker" in navigator) {
-    window.addEventListener("load", () => {
-      navigator.serviceWorker.register("/rico-mealtracker-main/sw.js").catch(console.error);
-    });
-  }
-</script>
-<button id="installBtn"
-  style="
-    position:fixed;
-    bottom:120px;
-    right:16px;
-    padding:12px 16px;
-    background:#22d3ee;
-    color:#000;
-    border:none;
-    border-radius:12px;
-    font-weight:600;
-    display:none;
-    z-index:9999;">
-  App installieren
-</button>
-
-<script>
-let deferredPrompt = null;
-const btn = document.getElementById("installBtn");
-
-window.addEventListener("beforeinstallprompt", (e) => {
-  e.preventDefault();
-  deferredPrompt = e;
-  btn.style.display = "block";
-});
-
-btn.addEventListener("click", async () => {
-  if (!deferredPrompt) return;
-  deferredPrompt.prompt();
-  await deferredPrompt.userChoice;
-  deferredPrompt = null;
-  btn.style.display = "none";
-});
-</script>
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => {
+        navigator.serviceWorker.register("/rico-mealtracker-main/sw.js").catch(console.error);
+      });
+    }
+  </script>
 
 </body>
 </html>
