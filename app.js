@@ -100,6 +100,7 @@ function prefillGoalsModal(){
   $("goalP").value = s.goals.p ?? 0;
   $("goalC").value = s.goals.c ?? 0;
   $("goalF").value = s.goals.f ?? 0;
+  updateGoalsKcalFromMacros();
 }
 function updateGoalsKcalFromMacros(){
   const p = parseFloat(($("goalP")?.value || "0").replace(",", ".")) || 0;
@@ -555,19 +556,22 @@ function render(){
 
 // ---------------- wire ----------------
 function wire(){
-  // Bottom nav -> modals
+  // ----------------------------
+  // Bottom nav -> open modals
+  // ----------------------------
   document.querySelectorAll(".navbtn").forEach((btn)=>{
     btn.addEventListener("click", ()=> openModal(btn.dataset.modal));
   });
 
-  // Modal close
+  // ----------------------------
+  // Modal / Drawer close
+  // ----------------------------
   $("modalClose")?.addEventListener("click", closeModal);
 
-  // Drawer open/close
   $("burger")?.addEventListener("click", openDrawer);
   $("drawerClose")?.addEventListener("click", closeDrawer);
 
-  // Overlay click closes (whichever is open)
+  // Overlay click closes whichever is open
   $("overlay")?.addEventListener("click", ()=>{
     if(!$("modal")?.classList.contains("hidden")) closeModal();
     if(!$("drawer")?.classList.contains("hidden")) closeDrawer();
@@ -581,7 +585,9 @@ function wire(){
     }
   });
 
+  // ----------------------------
   // Date change
+  // ----------------------------
   $("date")?.addEventListener("change",(e)=>{
     const s=initDefaults(loadState());
     s.lastDate = e.target.value || todayISO();
@@ -590,7 +596,9 @@ function wire(){
     render();
   });
 
-  // macros -> kcal auto; typing disables per100
+  // ----------------------------
+  // Create form: macros -> kcal auto (typing disables per100 base)
+  // ----------------------------
   ["p","c","f"].forEach((id)=>{
     $(id)?.addEventListener("input", ()=>{
       clearPer100Base();
@@ -599,10 +607,12 @@ function wire(){
   });
   $("manualKcal")?.addEventListener("change", ()=> updateKcalFromMacros());
 
-  // grams scaling
+  // grams scaling (only if per100 base active)
   $("grams")?.addEventListener("input", ()=> applyPer100ScalingIfPresent());
 
-  // Add/save entry
+  // ----------------------------
+  // Add / Save entry
+  // ----------------------------
   $("add")?.addEventListener("click", ()=>{
     const s=initDefaults(loadState());
     const date=ensureDateFilled();
@@ -612,9 +622,11 @@ function wire(){
     const name=($("name")?.value||"").trim() || "Eintrag";
     const grams=num("grams");
     const p=num("p"), c=num("c"), f=num("f");
-    const manual=$("manualKcal")?.checked;
-    const kcal= manual ? num("kcal") : calcKcalFromMacros(p,c,f);
 
+    const manual=$("manualKcal")?.checked;
+    const kcal = manual ? num("kcal") : calcKcalFromMacros(p,c,f);
+
+    // Save/update entry
     if(editingId){
       const idx=s[key].findIndex(x=>x.id===editingId);
       if(idx>=0){
@@ -625,13 +637,34 @@ function wire(){
       s[key].push({ id: uid(), name, grams, p, c, f, kcal: Math.round(kcal), manualKcal: !!manual });
     }
 
+    // ---- Recents speichern (Top 12) ----
+    const isPer100 = $("grams")?.dataset.per100 === "1";
+    const recentObj = {
+      id: uid(),
+      name,
+      grams,
+      p, c, f,
+      kcal: Math.round(kcal),
+      p100: isPer100 ? (parseFloat($("grams").dataset.p100||"0")||0) : null,
+      c100: isPer100 ? (parseFloat($("grams").dataset.c100||"0")||0) : null,
+      f100: isPer100 ? (parseFloat($("grams").dataset.f100||"0")||0) : null,
+      kcal100: isPer100 ? (parseFloat($("grams").dataset.kcal100||"")||null) : null
+    };
+
+    s.recents = (s.recents || []).filter(x => x.name !== name);
+    s.recents.unshift(recentObj);
+    s.recents = s.recents.slice(0, 12);
+
     saveState(s);
+
     clearPer100Base();
     closeModal();
     render();
   });
 
+  // ----------------------------
   // OFF search
+  // ----------------------------
   $("offSearchBtn")?.addEventListener("click", async ()=>{
     const q=($("offQuery")?.value||"").trim();
     if(!q) return;
@@ -639,23 +672,34 @@ function wire(){
     catch(e){ if($("offStatus")) $("offStatus").textContent="Fehler: "+(e?.message||e); }
   });
 
-  // scan
+  // Optional: Enter triggers search
+  $("offQuery")?.addEventListener("keydown",(e)=>{
+    if(e.key==="Enter"){ e.preventDefault(); $("offSearchBtn")?.click(); }
+  });
+
+  // ----------------------------
+  // Barcode scan
+  // ----------------------------
   $("scanBtn")?.addEventListener("click", startBarcodeScan);
   $("scanStop")?.addEventListener("click", stopBarcodeScan);
 
+  // ----------------------------
   // Cut commit
+  // ----------------------------
   $("commitDay")?.addEventListener("click", commitDeficitForCurrentDay);
   $("drawerCommit")?.addEventListener("click", ()=>{
     closeDrawer();
     commitDeficitForCurrentDay();
   });
 
-  // Drawer -> open proper modals
+  // ----------------------------
+  // Drawer -> open modals
+  // ----------------------------
   $("openGoals")?.addEventListener("click", ()=>{ closeDrawer(); openModal("goals"); });
   $("openCut")?.addEventListener("click", ()=>{ closeDrawer(); openModal("cut"); });
   $("openTemplates")?.addEventListener("click", ()=>{ closeDrawer(); openModal("templates"); });
 
-  // Drawer resets
+  // Drawer reset buttons
   $("resetGoals")?.addEventListener("click", ()=>{
     const s=initDefaults(loadState());
     if(!confirm("Tagesziele auf Default zurücksetzen?")) return;
@@ -676,12 +720,18 @@ function wire(){
     render();
   });
 
-  // Goals modal buttons
+  // ----------------------------
+  // GOALS modal: live kcal from macro
+  // ----------------------------
+  ["goalP","goalC","goalF"].forEach(id=>{
+    $(id)?.addEventListener("input", updateGoalsKcalFromMacros);
+  });
+
   $("goalsResetBtn")?.addEventListener("click", ()=>{
     const s=initDefaults(loadState());
     s.goals = { kcal: 2400, p: 150, c: 300, f: 60 };
     saveState(s);
-    prefillGoalsModal();
+    prefillGoalsModal();       // includes updateGoalsKcalFromMacros()
     render();
   });
 
@@ -691,12 +741,18 @@ function wire(){
     s.goals.p = Math.max(0, parseFloat(String($("goalP").value||"0").replace(",", ".")) || 0);
     s.goals.c = Math.max(0, parseFloat(String($("goalC").value||"0").replace(",", ".")) || 0);
     s.goals.f = Math.max(0, parseFloat(String($("goalF").value||"0").replace(",", ".")) || 0);
+
+    // OPTIONAL: Auto-set kcal goal from macros (if you want)
+    // s.goals.kcal = Math.round(calcKcalFromMacros(s.goals.p, s.goals.c, s.goals.f));
+
     saveState(s);
     closeModal();
     render();
   });
 
-  // Cut modal buttons
+  // ----------------------------
+  // CUT modal
+  // ----------------------------
   $("cutSaveBtn")?.addEventListener("click", ()=>{
     const s=initDefaults(loadState());
     s.cut.maintenance = Math.max(0, parseInt($("cutMaint").value || "0", 10) || 0);
@@ -719,7 +775,9 @@ function wire(){
     render();
   });
 
+  // ----------------------------
   // Templates modal
+  // ----------------------------
   $("tplPick")?.addEventListener("change", (e)=> loadTemplateToEditor(e.target.value));
 
   $("tplUseCurrentBtn")?.addEventListener("click", ()=>{
@@ -731,6 +789,7 @@ function wire(){
     $("tplEditP").value = round1(p * factor);
     $("tplEditC").value = round1(c * factor);
     $("tplEditF").value = round1(f * factor);
+
     if(!$("tplEditName").value.trim()) $("tplEditName").value = ($("name").value || "").trim();
   });
 
@@ -780,7 +839,25 @@ function wire(){
     applyTemplateToCreate(id);
   });
 
-  // Export JSON
+  // ----------------------------
+  // Quick Template + Recents in Create
+  // (require the HTML selects in viewCreate)
+  // ----------------------------
+  $("applyTplQuick")?.addEventListener("click", ()=>{
+    const id = $("tplSelectQuick")?.value;
+    if(!id) return alert("Bitte Template auswählen.");
+    applyTemplateToCreate(id);
+  });
+
+  $("applyRecent")?.addEventListener("click", ()=>{
+    const id = $("recentSelect")?.value;
+    if(!id) return alert("Bitte Eintrag auswählen.");
+    applyRecentToCreate(id);
+  });
+
+  // ----------------------------
+  // Export / Import / Wipe / Force Update
+  // ----------------------------
   $("exportData")?.addEventListener("click", ()=>{
     const s=initDefaults(loadState());
     const blob = new Blob([JSON.stringify(s, null, 2)], { type: "application/json" });
@@ -791,7 +868,6 @@ function wire(){
     URL.revokeObjectURL(a.href);
   });
 
-  // Import JSON
   $("importFile")?.addEventListener("change", async (e)=>{
     const file = e.target.files?.[0];
     if(!file) return;
@@ -809,7 +885,6 @@ function wire(){
     }
   });
 
-  // Wipe all
   $("wipeAll")?.addEventListener("click", ()=>{
     if(!confirm("Wirklich ALLES löschen?")) return;
     localStorage.removeItem(STORAGE_KEY);
@@ -817,7 +892,6 @@ function wire(){
     render();
   });
 
-  // Force update (Service Worker unregister)
   $("forceUpdate")?.addEventListener("click", async ()=>{
     try{
       if("serviceWorker" in navigator){
@@ -829,9 +903,10 @@ function wire(){
     location.reload();
   });
 
-  // Init kcal
+  // Initial values
   updateKcalFromMacros();
 }
+
 
 // ---------------- boot ----------------
 document.addEventListener("DOMContentLoaded", ()=>{
@@ -844,4 +919,5 @@ document.addEventListener("DOMContentLoaded", ()=>{
   wireInstallFab();
   render();
 });
+
 
