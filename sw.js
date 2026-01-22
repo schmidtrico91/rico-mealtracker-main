@@ -1,4 +1,4 @@
-const CACHE_NAME = "rico-mealtracker-main-v1";
+const CACHE_NAME = "rico-mealtracker-main-v2";
 const BASE = "/rico-mealtracker-main/";
 
 const ASSETS = [
@@ -39,3 +39,4 @@ self.addEventListener("fetch", (event) => {
     caches.match(event.request).then((cached) => cached || fetch(event.request))
   );
 });
+
