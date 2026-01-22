@@ -198,15 +198,23 @@ function applyTemplateToForm(tpl, gramsOverride=null){
 function wireScalingFromGrams(){
   document.getElementById("grams").addEventListener("input", () => {
     const s = loadState(); initDefaults(s);
+ 
+    // 1) Wenn Template ausgewählt: Template-Skalierung
     const tplId = document.getElementById("tplSelectQuick").value;
-    if (!tplId) return;
-    const tpl = getTemplateById(s, tplId);
-    if (!tpl) return;
-    const grams = num("grams");
-    if (grams<=0) return;
-    applyTemplateToForm(tpl, grams);
+    if (tplId) {
+      const tpl = getTemplateById(s, tplId);
+      if (!tpl) return;
+      const grams = num("grams");
+      if (grams <= 0) return;
+      applyTemplateToForm(tpl, grams);
+      return;
+    }
+ 
+    // 2) Sonst: OFF/Barcode (per100) Skalierung
+    applyPer100ScalingIfPresent();
   });
 }
+ 
 
 // ---------- kcal auto ----------
 function updateKcalFromMacros(){
@@ -787,4 +795,5 @@ function wire(){
   updateKcalFromMacros();
   render();
 })();
+
 
