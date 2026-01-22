@@ -15,6 +15,7 @@ const STORAGE_KEY = "ricos_mealtracker_main_v2";
 let editingId = null;
 let scanStream = null;
 let scanRunning = false;
+let deferredInstallPrompt = null;
 
 // -------------------- Utils --------------------
 function todayISO() { return new Date().toISOString().slice(0, 10); }
@@ -868,6 +869,49 @@ function wire() {
   // initial kcal calc
   updateKcalFromMacros();
 }
+// -------------------- Install funktion --------------------
+function wireInstallFab(){
+  const fab = document.getElementById("installFab");
+  if (!fab) return;
+ 
+  // If already installed => hide
+  const isStandalone =
+    window.matchMedia("(display-mode: standalone)").matches ||
+    window.navigator.standalone === true;
+ 
+  if (isStandalone) {
+    fab.classList.add("hidden");
+    return;
+  }
+ 
+  // Listen for install prompt availability
+  window.addEventListener("beforeinstallprompt", (e) => {
+    e.preventDefault();
+    deferredInstallPrompt = e;
+    fab.classList.remove("hidden");
+  });
+ 
+  // Hide if installed
+  window.addEventListener("appinstalled", () => {
+    deferredInstallPrompt = null;
+    fab.classList.add("hidden");
+  });
+ 
+  // Click -> prompt
+  fab.addEventListener("click", async () => {
+    if (!deferredInstallPrompt) return;
+    fab.disabled = true;
+    try{
+      deferredInstallPrompt.prompt();
+      await deferredInstallPrompt.userChoice;
+    } finally {
+      deferredInstallPrompt = null;
+      fab.classList.add("hidden");
+      fab.disabled = false;
+    }
+  });
+}
+ 
 
 // -------------------- Boot --------------------
 (function boot() {
@@ -878,5 +922,7 @@ function wire() {
   document.getElementById("date").value = s.lastDate || todayISO();
 
   wire();
+  wireInstallFab();
   render();
 })();
+
