@@ -704,25 +704,6 @@ function wire(){
     const manual=$("manualKcal")?.checked;
     const kcal = manual ? num("kcal") : calcKcalFromMacros(p,c,f);
 
-    // ---- Recents speichern (Top 12) ----
-const recentObj = {
-  id: uid(),
-  name,
-  grams,
-  p, c, f,
-  kcal: Math.round(kcal),
-  // wenn per100 aktiv, speichern wir zusätzlich per100
-  p100: $("grams")?.dataset.per100==="1" ? (parseFloat($("grams").dataset.p100||"0")||0) : null,
-  c100: $("grams")?.dataset.per100==="1" ? (parseFloat($("grams").dataset.c100||"0")||0) : null,
-  f100: $("grams")?.dataset.per100==="1" ? (parseFloat($("grams").dataset.f100||"0")||0) : null,
-  kcal100: $("grams")?.dataset.per100==="1" ? (parseFloat($("grams").dataset.kcal100||"")||null) : null
-};
- 
-s.recents = (s.recents||[]).filter(x => x.name !== name); // dupes raus nach Name
-s.recents.unshift(recentObj);
-s.recents = s.recents.slice(0, 12);
- 
-
     
 
     // Save/update entry
@@ -1000,19 +981,7 @@ s.recents = s.recents.slice(0, 12);
     }catch(_){}
     alert("Update erzwungen. Seite lädt neu…");
     location.reload();
-  });
-
-  $("applyTplQuick")?.addEventListener("click", ()=>{
-  const id = $("tplSelectQuick")?.value;
-  if(!id) return alert("Bitte Template auswählen.");
-  applyTemplateToCreate(id);
-});
- 
-$("applyRecent")?.addEventListener("click", ()=>{
-  const id = $("recentSelect")?.value;
-  if(!id) return alert("Bitte Eintrag auswählen.");
-  applyRecentToCreate(id);
-});
+  }); 
  
 
   // Initial values
@@ -1031,6 +1000,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
   wireInstallFab();
   render();
 });
+
 
 
 
