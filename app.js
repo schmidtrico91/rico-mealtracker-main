@@ -16,8 +16,6 @@ let editingId = null;
 let scanStream = null;
 let scanRunning = false;
 let deferredInstallPrompt = null;
-
-let deferredInstallPrompt = null;
  
 // Listener SOFORT registrieren (damit wir das Event nicht verpassen)
 window.addEventListener("beforeinstallprompt", (e) => {
@@ -1002,5 +1000,6 @@ function wireInstallFab(){
   wireInstallFab();
   render();
 })();
+
 
 
