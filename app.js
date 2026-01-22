@@ -1,11 +1,11 @@
-// Rico’s Mealtracker — app.js (stable boot + modal + drawer + install FAB)
-// IMPORTANT: boots on DOMContentLoaded and fails gracefully if elements are missing.
+// Rico’s Mealtracker — app.js (Modal/Drawer + OFF + Barcode + Templates + Cut)
+// Works with the provided index.html IDs.
 
 const KCAL_PER_G_PROTEIN = 4;
 const KCAL_PER_G_CARBS = 4;
 const KCAL_PER_G_FAT = 9;
 
-const STORAGE_KEY = "ricos_mealtracker_main_v3";
+const STORAGE_KEY = "ricos_mealtracker_main_v4";
 
 let editingId = null;
 let scanStream = null;
@@ -14,22 +14,13 @@ let scanRunning = false;
 // Install prompt (Chrome heuristic may suppress event)
 let deferredInstallPrompt = null;
 
-// ---------- tiny visible "JS running" badge ----------
-function showJsBadge() {
-  try {
-    const b = document.createElement("div");
-    b.textContent = "JS OK ✅";
-    b.style.cssText =
-      "position:fixed;left:10px;top:70px;z-index:99999;background:rgba(34,211,238,.18);border:1px solid rgba(34,211,238,.35);color:#e9eef6;padding:6px 10px;border-radius:10px;font:12px ui-monospace,monospace";
-    document.body.appendChild(b);
-    setTimeout(() => b.remove(), 2500);
-  } catch (_) {}
-}
-
+// ---------------- utils ----------------
 function $(id){ return document.getElementById(id); }
 function todayISO(){ return new Date().toISOString().slice(0,10); }
 function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2); }
 function dayKey(d){ return `day_${d}`; }
+function clamp01(x){ return Math.max(0, Math.min(1, x)); }
+function round1(x){ return Math.round((x + Number.EPSILON) * 10) / 10; }
 
 function loadState(){ return JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}"); }
 function saveState(s){ localStorage.setItem(STORAGE_KEY, JSON.stringify(s)); }
@@ -43,8 +34,7 @@ function initDefaults(s){
 }
 
 function setText(id, txt){ const el=$(id); if(el) el.textContent=String(txt); }
-function clamp01(x){ return Math.max(0, Math.min(1, x)); }
-function round1(x){ return Math.round((x + Number.EPSILON) * 10) / 10; }
+
 function num(id){
   const el=$(id);
   if(!el) return 0;
@@ -52,14 +42,17 @@ function num(id){
   const n=parseFloat(v);
   return Number.isFinite(n) ? n : 0;
 }
+
 function ensureDateFilled(){
   const d=$("date");
   if(d && !d.value) d.value=todayISO();
   return d?.value || todayISO();
 }
+
 function calcKcalFromMacros(p,c,f){
   return p*KCAL_PER_G_PROTEIN + c*KCAL_PER_G_CARBS + f*KCAL_PER_G_FAT;
 }
+
 function sumEntries(entries){
   return (entries||[]).reduce((acc,e)=>{
     acc.kcal += (e.kcal||0);
@@ -70,32 +63,12 @@ function sumEntries(entries){
   },{kcal:0,p:0,c:0,f:0});
 }
 
-// ---------- modal + drawer ----------
-function openModal(which){
-  const overlay=$("overlay"), modal=$("modal"), title=$("modalTitle");
-  if(!overlay || !modal || !title) return;
-
-  ["viewSearch","viewCreate","viewScan"].forEach(id => $(id)?.classList.add("hidden"));
-
-  if(which==="scan") title.textContent="Scannen";
-  if(which==="search") title.textContent="Lebensmittel suchen";
-  if(which==="create") title.textContent="Neues erstellen";
-
-  const target = which==="scan" ? "viewScan" : which==="search" ? "viewSearch" : "viewCreate";
-  $(target)?.classList.remove("hidden");
-
-  overlay.classList.remove("hidden");
-  modal.classList.remove("hidden");
-  modal.setAttribute("aria-hidden","false");
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]));
 }
-function closeModal(){
-  const overlay=$("overlay"), modal=$("modal"), drawer=$("drawer");
-  if(!overlay || !modal || !drawer) return;
-  modal.classList.add("hidden");
-  modal.setAttribute("aria-hidden","true");
-  const drawerOpen=!drawer.classList.contains("hidden");
-  if(!drawerOpen) overlay.classList.add("hidden");
-}
+function normalizeOFF(n){ return Number.isFinite(n) ? n : 0; }
+
+// ---------------- modal + drawer ----------------
 function openDrawer(){
   const overlay=$("overlay"), drawer=$("drawer");
   if(!overlay || !drawer) return;
@@ -112,23 +85,115 @@ function closeDrawer(){
   if(!modalOpen) overlay.classList.add("hidden");
 }
 
-// ---------- install FAB (robust fallback) ----------
+function closeModal(){
+  const overlay=$("overlay"), modal=$("modal"), drawer=$("drawer");
+  if(!overlay || !modal || !drawer) return;
+  modal.classList.add("hidden");
+  modal.setAttribute("aria-hidden","true");
+  const drawerOpen=!drawer.classList.contains("hidden");
+  if(!drawerOpen) overlay.classList.add("hidden");
+}
+
+function prefillGoalsModal(){
+  const s = initDefaults(loadState());
+  $("goalKcal").value = s.goals.kcal ?? 0;
+  $("goalP").value = s.goals.p ?? 0;
+  $("goalC").value = s.goals.c ?? 0;
+  $("goalF").value = s.goals.f ?? 0;
+}
+function prefillCutModal(){
+  const s = initDefaults(loadState());
+  $("cutMaint").value = s.cut.maintenance ?? 0;
+  $("cutBudgetStart").value = s.cut.budgetStart ?? 0;
+}
+
+function refreshTemplatePick(){
+  const s = initDefaults(loadState());
+  const sel = $("tplPick");
+  if(!sel) return;
+
+  const tpls = s.templates || [];
+  sel.innerHTML = "";
+
+  const opt0 = document.createElement("option");
+  opt0.value = "";
+  opt0.textContent = "— auswählen —";
+  sel.appendChild(opt0);
+
+  tpls.forEach(t=>{
+    const o = document.createElement("option");
+    o.value = t.id;
+    o.textContent = t.name;
+    sel.appendChild(o);
+  });
+}
+function prefillTemplatesModal(){
+  refreshTemplatePick();
+  $("tplEditName").value = "";
+  $("tplEditBaseG").value = 100;
+  $("tplEditP").value = "";
+  $("tplEditC").value = "";
+  $("tplEditF").value = "";
+}
+function loadTemplateToEditor(tplId){
+  const s = initDefaults(loadState());
+  const t = (s.templates||[]).find(x=>x.id===tplId);
+  if(!t) return;
+
+  $("tplEditName").value = t.name || "";
+  $("tplEditBaseG").value = t.baseG ?? 100;
+  $("tplEditP").value = t.p100 ?? 0;
+  $("tplEditC").value = t.c100 ?? 0;
+  $("tplEditF").value = t.f100 ?? 0;
+}
+
+function openModal(which){
+  const overlay=$("overlay"), modal=$("modal"), title=$("modalTitle");
+  if(!overlay || !modal || !title) return;
+
+  const allViews = ["viewSearch","viewCreate","viewScan","viewGoals","viewCut","viewTemplates"];
+  allViews.forEach(id => $(id)?.classList.add("hidden"));
+
+  const map = {
+    scan: { title: "Scannen", view: "viewScan" },
+    search: { title: "Lebensmittel suchen", view: "viewSearch" },
+    create: { title: "Neues erstellen", view: "viewCreate" },
+    goals: { title: "Tagesziele", view: "viewGoals" },
+    cut: { title: "Cut-Countdown", view: "viewCut" },
+    templates: { title: "Templates", view: "viewTemplates" },
+  };
+
+  const cfg = map[which] || map.create;
+  title.textContent = cfg.title;
+  $(cfg.view)?.classList.remove("hidden");
+
+  overlay.classList.remove("hidden");
+  modal.classList.remove("hidden");
+  modal.setAttribute("aria-hidden","false");
+
+  if(which === "goals") prefillGoalsModal();
+  if(which === "cut") prefillCutModal();
+  if(which === "templates") prefillTemplatesModal();
+}
+
+// ---------------- install FAB ----------------
 function isStandalone(){
   return window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true;
 }
 function showInstallToast(msg){
-  let t=$("installToast");
+  let t = $("installToast");
   if(!t){
-    t=document.createElement("div");
-    t.id="installToast";
-    t.className="installToast";
+    t = document.createElement("div");
+    t.id = "installToast";
+    t.className = "installToast";
     document.body.appendChild(t);
   }
-  t.textContent=msg;
+  t.textContent = msg;
   t.classList.remove("hidden");
   clearTimeout(t._timer);
-  t._timer=setTimeout(()=>t.classList.add("hidden"), 3500);
+  t._timer = setTimeout(()=>t.classList.add("hidden"), 3500);
 }
+
 function wireInstallFab(){
   const fab=$("installFab");
   if(!fab) return;
@@ -137,7 +202,6 @@ function wireInstallFab(){
     fab.classList.add("hidden");
     return;
   }
-  // Always show (fallback if event suppressed)
   fab.classList.remove("hidden");
 
   window.addEventListener("beforeinstallprompt",(e)=>{
@@ -145,6 +209,7 @@ function wireInstallFab(){
     deferredInstallPrompt=e;
     fab.classList.remove("hidden");
   });
+
   window.addEventListener("appinstalled",()=>{
     deferredInstallPrompt=null;
     fab.classList.add("hidden");
@@ -163,7 +228,7 @@ function wireInstallFab(){
   });
 }
 
-// ---------- per-100g scaling ----------
+// ---------------- per-100g scaling ----------------
 function setPer100Base(p100,c100,f100,kcal100=null){
   const gramsEl=$("grams");
   if(!gramsEl) return;
@@ -183,11 +248,9 @@ function clearPer100Base(){
   delete gramsEl.dataset.kcal100;
 }
 function updateKcalFromMacros(){
-  const manual=$("manualKcal")?.checked;
-  if(manual) return;
-  const kcal=calcKcalFromMacros(num("p"),num("c"),num("f"));
-  const el=$("kcal");
-  if(el) el.value=String(Math.round(kcal));
+  if ($("manualKcal")?.checked) return;
+  const kcal = calcKcalFromMacros(num("p"), num("c"), num("f"));
+  if($("kcal")) $("kcal").value = String(Math.round(kcal));
 }
 function applyPer100ScalingIfPresent(){
   const gramsEl=$("grams");
@@ -208,12 +271,7 @@ function applyPer100ScalingIfPresent(){
   updateKcalFromMacros();
 }
 
-// ---------- OFF search + barcode ----------
-function escapeHtml(s){
-  return String(s).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]));
-}
-function normalizeOFF(n){ return Number.isFinite(n) ? n : 0; }
-
+// ---------------- OpenFoodFacts search ----------------
 async function offSearch(q){
   const status=$("offStatus"), box=$("offResults");
   if(!status || !box) return;
@@ -290,13 +348,13 @@ async function fetchOFFByBarcode(code){
   return {name,p100,c100,f100,kcal100};
 }
 
-// Barcode scan
+// ---------------- Barcode scan ----------------
 async function startBarcodeScan(){
   const status=$("scanStatus"), wrap=$("scannerWrap"), video=$("scanVideo");
   if(!status || !wrap || !video) return;
 
   if(!("BarcodeDetector" in window)){
-    status.textContent="BarcodeDetector nicht verfügbar.";
+    status.textContent="BarcodeDetector nicht verfügbar (Android Chrome sollte es haben).";
     return;
   }
   const detector=new BarcodeDetector({ formats:["ean_13","ean_8","upc_a","upc_e","code_128"] });
@@ -336,6 +394,7 @@ async function startBarcodeScan(){
     status.textContent="Kamera nicht verfügbar: "+(e?.message||e);
   }
 }
+
 function stopBarcodeScan(){
   scanRunning=false;
   const wrap=$("scannerWrap"), video=$("scanVideo");
@@ -347,7 +406,47 @@ function stopBarcodeScan(){
   wrap?.classList.add("hidden");
 }
 
-// ---------- render ----------
+// ---------------- Cut commit ----------------
+function commitDeficitForCurrentDay(){
+  const s = initDefaults(loadState());
+  const date = ensureDateFilled();
+
+  if (!s.cut.committedDays) s.cut.committedDays = {};
+  if (s.cut.committedDays[date]) {
+    alert("Heute bereits verbucht.");
+    return;
+  }
+
+  const entries = s[dayKey(date)] || [];
+  const sums = sumEntries(entries);
+
+  const maintenance = Math.round(s.cut.maintenance || 0);
+  const eaten = Math.round(sums.kcal || 0);
+  const deficit = Math.max(0, maintenance - eaten);
+
+  s.cut.budgetLeft = Math.max(0, Math.round((s.cut.budgetLeft || 0) - deficit));
+  s.cut.committedDays[date] = true;
+
+  saveState(s);
+  render();
+  alert(`Verbucht: ${deficit} kcal Defizit`);
+}
+
+// ---------------- Templates apply ----------------
+function applyTemplateToCreate(tplId){
+  const s = initDefaults(loadState());
+  const t = (s.templates||[]).find(x=>x.id===tplId);
+  if(!t) return;
+
+  openModal("create");
+  $("name").value = t.name || "";
+  $("grams").value = 100;
+
+  setPer100Base(t.p100||0, t.c100||0, t.f100||0, t.kcal100||null);
+  applyPer100ScalingIfPresent();
+}
+
+// ---------------- render ----------------
 function renderDayList(state,date){
   const list=$("dayList"), empty=$("emptyHint");
   if(!list || !empty) return;
@@ -377,6 +476,7 @@ function renderDayList(state,date){
 
   [...list.querySelectorAll(".item")].forEach(row=>{
     const id=row.getAttribute("data-id");
+
     row.querySelector('[data-del="1"]')?.addEventListener("click",()=>{
       if(!confirm("Eintrag löschen?")) return;
       state[dayKey(date)]=(state[dayKey(date)]||[]).filter(x=>x.id!==id);
@@ -400,6 +500,7 @@ function renderDayList(state,date){
 
       $("manualKcal").checked=!!entry.manualKcal;
       $("kcal").value=entry.kcal ?? Math.round(calcKcalFromMacros(entry.p||0,entry.c||0,entry.f||0));
+
       openModal("create");
     });
   });
@@ -425,7 +526,7 @@ function render(){
   setText("sumC", Math.round(sums.c));
   setText("sumF", Math.round(sums.f));
 
-  // bars
+  // kcal bar
   const pct = state.goals.kcal>0 ? clamp01(sums.kcal/state.goals.kcal) : 0;
   if($("kcalBar")) $("kcalBar").style.width = `${Math.round(pct*100)}%`;
 
@@ -435,92 +536,85 @@ function render(){
   if($("cutBar")) $("cutBar").style.width = `${Math.round(cutPct*100)}%`;
   setText("cutPercent", Math.round(cutPct*100));
 
+  // status line
   if($("statusLine")) $("statusLine").textContent = `${entries.length} Einträge · ${Math.round(sums.kcal)} kcal`;
+
+  // version display
+  if($("appVersion")) $("appVersion").textContent = "Version: 20260122-3";
 
   renderDayList(state,date);
 }
 
-// ---------- wire ----------
-function wire() {
-  // --- Bottom nav -> modals ---
-  document.querySelectorAll(".navbtn").forEach((btn) => {
-    btn.addEventListener("click", () => openModal(btn.dataset.modal));
+// ---------------- wire ----------------
+function wire(){
+  // Bottom nav -> modals
+  document.querySelectorAll(".navbtn").forEach((btn)=>{
+    btn.addEventListener("click", ()=> openModal(btn.dataset.modal));
   });
 
-  // --- Modal close ---
+  // Modal close
   $("modalClose")?.addEventListener("click", closeModal);
 
-  // --- Drawer open/close ---
+  // Drawer open/close
   $("burger")?.addEventListener("click", openDrawer);
   $("drawerClose")?.addEventListener("click", closeDrawer);
 
-  // Overlay click closes whichever is open
-  $("overlay")?.addEventListener("click", () => {
-    if (!$("modal")?.classList.contains("hidden")) closeModal();
-    if (!$("drawer")?.classList.contains("hidden")) closeDrawer();
+  // Overlay click closes (whichever is open)
+  $("overlay")?.addEventListener("click", ()=>{
+    if(!$("modal")?.classList.contains("hidden")) closeModal();
+    if(!$("drawer")?.classList.contains("hidden")) closeDrawer();
   });
 
   // ESC closes
-  document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape") {
-      if (!$("modal")?.classList.contains("hidden")) closeModal();
-      if (!$("drawer")?.classList.contains("hidden")) closeDrawer();
+  document.addEventListener("keydown",(e)=>{
+    if(e.key==="Escape"){
+      if(!$("modal")?.classList.contains("hidden")) closeModal();
+      if(!$("drawer")?.classList.contains("hidden")) closeDrawer();
     }
   });
 
-  // --- Date change ---
-  $("date")?.addEventListener("change", (e) => {
-    const s = initDefaults(loadState());
+  // Date change
+  $("date")?.addEventListener("change",(e)=>{
+    const s=initDefaults(loadState());
     s.lastDate = e.target.value || todayISO();
     saveState(s);
-    editingId = null;
+    editingId=null;
     render();
   });
 
-  // --- Macro inputs -> kcal auto ---
-  ["p", "c", "f"].forEach((id) => {
-    $(id)?.addEventListener("input", () => {
+  // macros -> kcal auto; typing disables per100
+  ["p","c","f"].forEach((id)=>{
+    $(id)?.addEventListener("input", ()=>{
       clearPer100Base();
       updateKcalFromMacros();
     });
   });
-  $("manualKcal")?.addEventListener("change", () => updateKcalFromMacros());
+  $("manualKcal")?.addEventListener("change", ()=> updateKcalFromMacros());
 
-  // grams scaling for per100
-  $("grams")?.addEventListener("input", () => applyPer100ScalingIfPresent());
+  // grams scaling
+  $("grams")?.addEventListener("input", ()=> applyPer100ScalingIfPresent());
 
-  // --- Add / Save entry ---
-  $("add")?.addEventListener("click", () => {
-    const s = initDefaults(loadState());
-    const date = ensureDateFilled();
-    const key = dayKey(date);
-    if (!s[key]) s[key] = [];
+  // Add/save entry
+  $("add")?.addEventListener("click", ()=>{
+    const s=initDefaults(loadState());
+    const date=ensureDateFilled();
+    const key=dayKey(date);
+    if(!s[key]) s[key]=[];
 
-    const name = ($("name")?.value || "").trim() || "Eintrag";
-    const grams = num("grams");
-    const p = num("p"), c = num("c"), f = num("f");
+    const name=($("name")?.value||"").trim() || "Eintrag";
+    const grams=num("grams");
+    const p=num("p"), c=num("c"), f=num("f");
+    const manual=$("manualKcal")?.checked;
+    const kcal= manual ? num("kcal") : calcKcalFromMacros(p,c,f);
 
-    const manual = $("manualKcal")?.checked;
-    const kcal = manual ? num("kcal") : calcKcalFromMacros(p, c, f);
-
-    if (editingId) {
-      const idx = s[key].findIndex((x) => x.id === editingId);
-      if (idx >= 0) {
-        s[key][idx] = {
-          ...s[key][idx],
-          name, grams, p, c, f,
-          kcal: Math.round(kcal),
-          manualKcal: !!manual
-        };
+    if(editingId){
+      const idx=s[key].findIndex(x=>x.id===editingId);
+      if(idx>=0){
+        s[key][idx] = { ...s[key][idx], name, grams, p, c, f, kcal: Math.round(kcal), manualKcal: !!manual };
       }
-      editingId = null;
-    } else {
-      s[key].push({
-        id: uid(),
-        name, grams, p, c, f,
-        kcal: Math.round(kcal),
-        manualKcal: !!manual
-      });
+      editingId=null;
+    }else{
+      s[key].push({ id: uid(), name, grams, p, c, f, kcal: Math.round(kcal), manualKcal: !!manual });
     }
 
     saveState(s);
@@ -529,115 +623,43 @@ function wire() {
     render();
   });
 
-  // --- OpenFoodFacts search ---
-  $("offSearchBtn")?.addEventListener("click", async () => {
-    const q = ($("offQuery")?.value || "").trim();
-    if (!q) return;
-    try {
-      await offSearch(q);
-    } catch (e) {
-      if ($("offStatus")) $("offStatus").textContent = "Fehler: " + (e?.message || e);
-    }
+  // OFF search
+  $("offSearchBtn")?.addEventListener("click", async ()=>{
+    const q=($("offQuery")?.value||"").trim();
+    if(!q) return;
+    try{ await offSearch(q); }
+    catch(e){ if($("offStatus")) $("offStatus").textContent="Fehler: "+(e?.message||e); }
   });
 
-  // --- Barcode scan ---
+  // scan
   $("scanBtn")?.addEventListener("click", startBarcodeScan);
   $("scanStop")?.addEventListener("click", stopBarcodeScan);
 
-  // =========================
-  // Drawer Buttons (Menu)
-  // =========================
-
-  // Goals edit (prompt-based because no dedicated view in HTML)
-  $("openGoals")?.addEventListener("click", () => {
-    const s = initDefaults(loadState());
-
-    const kcal = prompt("Tagesziel kcal:", s.goals.kcal);
-    if (kcal === null) return;
-
-    const p = prompt("Protein Ziel (g):", s.goals.p);
-    if (p === null) return;
-
-    const c = prompt("Carbs Ziel (g):", s.goals.c);
-    if (c === null) return;
-
-    const f = prompt("Fett Ziel (g):", s.goals.f);
-    if (f === null) return;
-
-    s.goals.kcal = Math.max(0, parseInt(kcal, 10) || 0);
-    s.goals.p = Math.max(0, parseFloat(String(p).replace(",", ".")) || 0);
-    s.goals.c = Math.max(0, parseFloat(String(c).replace(",", ".")) || 0);
-    s.goals.f = Math.max(0, parseFloat(String(f).replace(",", ".")) || 0);
-
-    saveState(s);
+  // Cut commit
+  $("commitDay")?.addEventListener("click", commitDeficitForCurrentDay);
+  $("drawerCommit")?.addEventListener("click", ()=>{
     closeDrawer();
-    render();
+    commitDeficitForCurrentDay();
   });
 
-  $("resetGoals")?.addEventListener("click", () => {
-    const s = initDefaults(loadState());
-    if (!confirm("Tagesziele auf Default zurücksetzen?")) return;
+  // Drawer -> open proper modals
+  $("openGoals")?.addEventListener("click", ()=>{ closeDrawer(); openModal("goals"); });
+  $("openCut")?.addEventListener("click", ()=>{ closeDrawer(); openModal("cut"); });
+  $("openTemplates")?.addEventListener("click", ()=>{ closeDrawer(); openModal("templates"); });
+
+  // Drawer resets
+  $("resetGoals")?.addEventListener("click", ()=>{
+    const s=initDefaults(loadState());
+    if(!confirm("Tagesziele auf Default zurücksetzen?")) return;
     s.goals = { kcal: 2400, p: 150, c: 300, f: 60 };
     saveState(s);
     closeDrawer();
     render();
   });
 
-  // Cut settings (prompt-based)
-  $("openCut")?.addEventListener("click", () => {
-    const s = initDefaults(loadState());
-
-    const maint = prompt("Maintenance kcal:", s.cut.maintenance ?? 3000);
-    if (maint === null) return;
-
-    const budgetStart = prompt("Defizit-Budget Start (kcal):", s.cut.budgetStart ?? 0);
-    if (budgetStart === null) return;
-
-    s.cut.maintenance = Math.max(0, parseInt(maint, 10) || 0);
-    s.cut.budgetStart = Math.max(0, parseInt(budgetStart, 10) || 0);
-
-    // Wenn Budget neu gesetzt wird, setzen wir Left = Start
-    s.cut.budgetLeft = s.cut.budgetStart;
-    s.cut.committedDays = {}; // optional: reset "already committed" markers
-
-    saveState(s);
-    closeDrawer();
-    render();
-  });
-
-  // Commit deficit today: max(0, maintenance - eaten)
-  function commitDeficitForCurrentDay() {
-    const s = initDefaults(loadState());
-    const date = ensureDateFilled();
-
-    // only once per date
-    if (!s.cut.committedDays) s.cut.committedDays = {};
-    if (s.cut.committedDays[date]) {
-      alert("Heute bereits verbucht.");
-      return;
-    }
-
-    const entries = s[dayKey(date)] || [];
-    const sums = sumEntries(entries);
-    const deficit = Math.max(0, (s.cut.maintenance || 0) - Math.round(sums.kcal || 0));
-
-    s.cut.budgetLeft = Math.max(0, (s.cut.budgetLeft || 0) - deficit);
-    s.cut.committedDays[date] = true;
-
-    saveState(s);
-    render();
-    alert(`Verbucht: ${deficit} kcal Defizit`);
-  }
-
-  $("commitDay")?.addEventListener("click", commitDeficitForCurrentDay);
-  $("drawerCommit")?.addEventListener("click", () => {
-    closeDrawer();
-    commitDeficitForCurrentDay();
-  });
-
-  $("resetCut")?.addEventListener("click", () => {
-    if (!confirm("Cut-Countdown komplett resetten?")) return;
-    const s = initDefaults(loadState());
+  $("resetCut")?.addEventListener("click", ()=>{
+    if(!confirm("Cut-Countdown komplett resetten?")) return;
+    const s=initDefaults(loadState());
     s.cut.budgetStart = 0;
     s.cut.budgetLeft = 0;
     s.cut.committedDays = {};
@@ -646,15 +668,113 @@ function wire() {
     render();
   });
 
-  // Templates manager (falls du noch keinen Manager hast -> öffnet Create Modal)
-  $("openTemplates")?.addEventListener("click", () => {
-    closeDrawer();
-    openModal("create");
+  // Goals modal buttons
+  $("goalsResetBtn")?.addEventListener("click", ()=>{
+    const s=initDefaults(loadState());
+    s.goals = { kcal: 2400, p: 150, c: 300, f: 60 };
+    saveState(s);
+    prefillGoalsModal();
+    render();
+  });
+
+  $("goalsSaveBtn")?.addEventListener("click", ()=>{
+    const s=initDefaults(loadState());
+    s.goals.kcal = Math.max(0, parseInt($("goalKcal").value || "0", 10) || 0);
+    s.goals.p = Math.max(0, parseFloat(String($("goalP").value||"0").replace(",", ".")) || 0);
+    s.goals.c = Math.max(0, parseFloat(String($("goalC").value||"0").replace(",", ".")) || 0);
+    s.goals.f = Math.max(0, parseFloat(String($("goalF").value||"0").replace(",", ".")) || 0);
+    saveState(s);
+    closeModal();
+    render();
+  });
+
+  // Cut modal buttons
+  $("cutSaveBtn")?.addEventListener("click", ()=>{
+    const s=initDefaults(loadState());
+    s.cut.maintenance = Math.max(0, parseInt($("cutMaint").value || "0", 10) || 0);
+    s.cut.budgetStart = Math.max(0, parseInt($("cutBudgetStart").value || "0", 10) || 0);
+    s.cut.budgetLeft = s.cut.budgetStart;
+    s.cut.committedDays = {};
+    saveState(s);
+    closeModal();
+    render();
+  });
+
+  $("cutResetBtn")?.addEventListener("click", ()=>{
+    if(!confirm("Cut-Countdown komplett resetten?")) return;
+    const s=initDefaults(loadState());
+    s.cut.budgetStart = 0;
+    s.cut.budgetLeft = 0;
+    s.cut.committedDays = {};
+    saveState(s);
+    prefillCutModal();
+    render();
+  });
+
+  // Templates modal
+  $("tplPick")?.addEventListener("change", (e)=> loadTemplateToEditor(e.target.value));
+
+  $("tplUseCurrentBtn")?.addEventListener("click", ()=>{
+    const g = num("grams") || 100;
+    const p = num("p"), c = num("c"), f = num("f");
+    const factor = g > 0 ? (100 / g) : 1;
+
+    $("tplEditBaseG").value = 100;
+    $("tplEditP").value = round1(p * factor);
+    $("tplEditC").value = round1(c * factor);
+    $("tplEditF").value = round1(f * factor);
+    if(!$("tplEditName").value.trim()) $("tplEditName").value = ($("name").value || "").trim();
+  });
+
+  $("tplSaveBtn2")?.addEventListener("click", ()=>{
+    const s=initDefaults(loadState());
+    if(!s.templates) s.templates=[];
+
+    const currentId = $("tplPick").value;
+    const id = currentId || uid();
+
+    const name = ($("tplEditName").value || "").trim();
+    if(!name){ alert("Bitte Template-Namen eingeben."); return; }
+
+    const baseG = Math.max(1, parseInt($("tplEditBaseG").value || "100", 10) || 100);
+    const p100 = Math.max(0, parseFloat(String($("tplEditP").value||"0").replace(",", ".")) || 0);
+    const c100 = Math.max(0, parseFloat(String($("tplEditC").value||"0").replace(",", ".")) || 0);
+    const f100 = Math.max(0, parseFloat(String($("tplEditF").value||"0").replace(",", ".")) || 0);
+    const kcal100 = Math.round(calcKcalFromMacros(p100,c100,f100));
+
+    const obj = { id, name, baseG, p100, c100, f100, kcal100 };
+
+    const idx = s.templates.findIndex(x=>x.id===id);
+    if(idx>=0) s.templates[idx]=obj;
+    else s.templates.push(obj);
+
+    saveState(s);
+    refreshTemplatePick();
+    $("tplPick").value = id;
+    alert("Template gespeichert.");
+  });
+
+  $("tplDeleteBtn2")?.addEventListener("click", ()=>{
+    const id = $("tplPick").value;
+    if(!id){ alert("Kein Template gewählt."); return; }
+    if(!confirm("Template löschen?")) return;
+
+    const s=initDefaults(loadState());
+    s.templates = (s.templates||[]).filter(x=>x.id!==id);
+    saveState(s);
+    prefillTemplatesModal();
+    alert("Gelöscht.");
+  });
+
+  $("tplApplyToCreateBtn")?.addEventListener("click", ()=>{
+    const id = $("tplPick").value;
+    if(!id){ alert("Bitte Template auswählen."); return; }
+    applyTemplateToCreate(id);
   });
 
   // Export JSON
-  $("exportData")?.addEventListener("click", () => {
-    const s = initDefaults(loadState());
+  $("exportData")?.addEventListener("click", ()=>{
+    const s=initDefaults(loadState());
     const blob = new Blob([JSON.stringify(s, null, 2)], { type: "application/json" });
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
@@ -664,54 +784,55 @@ function wire() {
   });
 
   // Import JSON
-  $("importFile")?.addEventListener("change", async (e) => {
+  $("importFile")?.addEventListener("change", async (e)=>{
     const file = e.target.files?.[0];
-    if (!file) return;
-    try {
+    if(!file) return;
+    try{
       const txt = await file.text();
       const obj = JSON.parse(txt);
       localStorage.setItem(STORAGE_KEY, JSON.stringify(obj));
       alert("Import erfolgreich.");
       closeDrawer();
       render();
-    } catch (err) {
+    }catch(err){
       alert("Import fehlgeschlagen: " + (err?.message || err));
-    } finally {
-      e.target.value = "";
+    }finally{
+      e.target.value="";
     }
   });
 
   // Wipe all
-  $("wipeAll")?.addEventListener("click", () => {
-    if (!confirm("Wirklich ALLES löschen?")) return;
+  $("wipeAll")?.addEventListener("click", ()=>{
+    if(!confirm("Wirklich ALLES löschen?")) return;
     localStorage.removeItem(STORAGE_KEY);
     closeDrawer();
     render();
   });
 
-  // Force update (Service Worker)
-  $("forceUpdate")?.addEventListener("click", async () => {
-    try {
-      if ("serviceWorker" in navigator) {
+  // Force update (Service Worker unregister)
+  $("forceUpdate")?.addEventListener("click", async ()=>{
+    try{
+      if("serviceWorker" in navigator){
         const regs = await navigator.serviceWorker.getRegistrations();
-        await Promise.all(regs.map((r) => r.unregister()));
+        await Promise.all(regs.map(r=>r.unregister()));
       }
-    } catch (_) {}
+    }catch(_){}
     alert("Update erzwungen. Seite lädt neu…");
     location.reload();
   });
+
+  // Init kcal
+  updateKcalFromMacros();
 }
 
-// ---------- boot ----------
-document.addEventListener("DOMContentLoaded", () => {
-  showJsBadge();
-
-  const s=initDefaults(loadState());
+// ---------------- boot ----------------
+document.addEventListener("DOMContentLoaded", ()=>{
+  const s = initDefaults(loadState());
   saveState(s);
+
   if($("date")) $("date").value = s.lastDate || todayISO();
 
   wire();
   wireInstallFab();
   render();
 });
-
