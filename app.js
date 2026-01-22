@@ -441,65 +441,86 @@ function render(){
 }
 
 // ---------- wire ----------
-function wireScalingFromGrams(){
-  $("grams")?.addEventListener("input", ()=> applyPer100ScalingIfPresent());
-}
-
-function wire(){
-  // bottom nav -> modals
-  document.querySelectorAll(".navbtn").forEach(btn=>{
-    btn.addEventListener("click", ()=> openModal(btn.dataset.modal));
+function wire() {
+  // --- Bottom nav -> modals ---
+  document.querySelectorAll(".navbtn").forEach((btn) => {
+    btn.addEventListener("click", () => openModal(btn.dataset.modal));
   });
 
+  // --- Modal close ---
   $("modalClose")?.addEventListener("click", closeModal);
+
+  // --- Drawer open/close ---
   $("burger")?.addEventListener("click", openDrawer);
   $("drawerClose")?.addEventListener("click", closeDrawer);
 
-  $("overlay")?.addEventListener("click", ()=>{
-    if(!$("modal")?.classList.contains("hidden")) closeModal();
-    if(!$("drawer")?.classList.contains("hidden")) closeDrawer();
+  // Overlay click closes whichever is open
+  $("overlay")?.addEventListener("click", () => {
+    if (!$("modal")?.classList.contains("hidden")) closeModal();
+    if (!$("drawer")?.classList.contains("hidden")) closeDrawer();
   });
 
-  document.addEventListener("keydown",(e)=>{
-    if(e.key==="Escape"){
-      if(!$("modal")?.classList.contains("hidden")) closeModal();
-      if(!$("drawer")?.classList.contains("hidden")) closeDrawer();
+  // ESC closes
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") {
+      if (!$("modal")?.classList.contains("hidden")) closeModal();
+      if (!$("drawer")?.classList.contains("hidden")) closeDrawer();
     }
   });
 
-  $("date")?.addEventListener("change",(e)=>{
-    const s=initDefaults(loadState());
+  // --- Date change ---
+  $("date")?.addEventListener("change", (e) => {
+    const s = initDefaults(loadState());
     s.lastDate = e.target.value || todayISO();
     saveState(s);
-    editingId=null;
+    editingId = null;
     render();
   });
 
-  // macros -> kcal auto; typing disables per100
-  ["p","c","f"].forEach(id=>{
-    $(id)?.addEventListener("input", ()=>{ clearPer100Base(); updateKcalFromMacros(); });
+  // --- Macro inputs -> kcal auto ---
+  ["p", "c", "f"].forEach((id) => {
+    $(id)?.addEventListener("input", () => {
+      clearPer100Base();
+      updateKcalFromMacros();
+    });
   });
-  $("manualKcal")?.addEventListener("change", ()=> updateKcalFromMacros());
+  $("manualKcal")?.addEventListener("change", () => updateKcalFromMacros());
 
-  // add/save
-  $("add")?.addEventListener("click", ()=>{
-    const s=initDefaults(loadState());
-    const date=ensureDateFilled();
-    const key=dayKey(date);
-    if(!s[key]) s[key]=[];
+  // grams scaling for per100
+  $("grams")?.addEventListener("input", () => applyPer100ScalingIfPresent());
 
-    const name=($("name")?.value||"").trim() || "Eintrag";
-    const grams=num("grams");
-    const p=num("p"), c=num("c"), f=num("f");
-    const manual=$("manualKcal")?.checked;
-    const kcal = manual ? num("kcal") : calcKcalFromMacros(p,c,f);
+  // --- Add / Save entry ---
+  $("add")?.addEventListener("click", () => {
+    const s = initDefaults(loadState());
+    const date = ensureDateFilled();
+    const key = dayKey(date);
+    if (!s[key]) s[key] = [];
 
-    if(editingId){
-      const idx=s[key].findIndex(x=>x.id===editingId);
-      if(idx>=0) s[key][idx] = { ...s[key][idx], name, grams, p, c, f, kcal: Math.round(kcal), manualKcal: !!manual };
-      editingId=null;
-    }else{
-      s[key].push({ id: uid(), name, grams, p, c, f, kcal: Math.round(kcal), manualKcal: !!manual });
+    const name = ($("name")?.value || "").trim() || "Eintrag";
+    const grams = num("grams");
+    const p = num("p"), c = num("c"), f = num("f");
+
+    const manual = $("manualKcal")?.checked;
+    const kcal = manual ? num("kcal") : calcKcalFromMacros(p, c, f);
+
+    if (editingId) {
+      const idx = s[key].findIndex((x) => x.id === editingId);
+      if (idx >= 0) {
+        s[key][idx] = {
+          ...s[key][idx],
+          name, grams, p, c, f,
+          kcal: Math.round(kcal),
+          manualKcal: !!manual
+        };
+      }
+      editingId = null;
+    } else {
+      s[key].push({
+        id: uid(),
+        name, grams, p, c, f,
+        kcal: Math.round(kcal),
+        manualKcal: !!manual
+      });
     }
 
     saveState(s);
@@ -508,20 +529,177 @@ function wire(){
     render();
   });
 
-  // OFF search
-  $("offSearchBtn")?.addEventListener("click", async ()=>{
-    const q=($("offQuery")?.value||"").trim();
-    if(!q) return;
-    try{ await offSearch(q); }
-    catch(e){ if($("offStatus")) $("offStatus").textContent="Fehler: "+(e?.message||e); }
+  // --- OpenFoodFacts search ---
+  $("offSearchBtn")?.addEventListener("click", async () => {
+    const q = ($("offQuery")?.value || "").trim();
+    if (!q) return;
+    try {
+      await offSearch(q);
+    } catch (e) {
+      if ($("offStatus")) $("offStatus").textContent = "Fehler: " + (e?.message || e);
+    }
   });
 
-  // scan
+  // --- Barcode scan ---
   $("scanBtn")?.addEventListener("click", startBarcodeScan);
   $("scanStop")?.addEventListener("click", stopBarcodeScan);
 
-  wireScalingFromGrams();
-  updateKcalFromMacros();
+  // =========================
+  // Drawer Buttons (Menu)
+  // =========================
+
+  // Goals edit (prompt-based because no dedicated view in HTML)
+  $("openGoals")?.addEventListener("click", () => {
+    const s = initDefaults(loadState());
+
+    const kcal = prompt("Tagesziel kcal:", s.goals.kcal);
+    if (kcal === null) return;
+
+    const p = prompt("Protein Ziel (g):", s.goals.p);
+    if (p === null) return;
+
+    const c = prompt("Carbs Ziel (g):", s.goals.c);
+    if (c === null) return;
+
+    const f = prompt("Fett Ziel (g):", s.goals.f);
+    if (f === null) return;
+
+    s.goals.kcal = Math.max(0, parseInt(kcal, 10) || 0);
+    s.goals.p = Math.max(0, parseFloat(String(p).replace(",", ".")) || 0);
+    s.goals.c = Math.max(0, parseFloat(String(c).replace(",", ".")) || 0);
+    s.goals.f = Math.max(0, parseFloat(String(f).replace(",", ".")) || 0);
+
+    saveState(s);
+    closeDrawer();
+    render();
+  });
+
+  $("resetGoals")?.addEventListener("click", () => {
+    const s = initDefaults(loadState());
+    if (!confirm("Tagesziele auf Default zurücksetzen?")) return;
+    s.goals = { kcal: 2400, p: 150, c: 300, f: 60 };
+    saveState(s);
+    closeDrawer();
+    render();
+  });
+
+  // Cut settings (prompt-based)
+  $("openCut")?.addEventListener("click", () => {
+    const s = initDefaults(loadState());
+
+    const maint = prompt("Maintenance kcal:", s.cut.maintenance ?? 3000);
+    if (maint === null) return;
+
+    const budgetStart = prompt("Defizit-Budget Start (kcal):", s.cut.budgetStart ?? 0);
+    if (budgetStart === null) return;
+
+    s.cut.maintenance = Math.max(0, parseInt(maint, 10) || 0);
+    s.cut.budgetStart = Math.max(0, parseInt(budgetStart, 10) || 0);
+
+    // Wenn Budget neu gesetzt wird, setzen wir Left = Start
+    s.cut.budgetLeft = s.cut.budgetStart;
+    s.cut.committedDays = {}; // optional: reset "already committed" markers
+
+    saveState(s);
+    closeDrawer();
+    render();
+  });
+
+  // Commit deficit today: max(0, maintenance - eaten)
+  function commitDeficitForCurrentDay() {
+    const s = initDefaults(loadState());
+    const date = ensureDateFilled();
+
+    // only once per date
+    if (!s.cut.committedDays) s.cut.committedDays = {};
+    if (s.cut.committedDays[date]) {
+      alert("Heute bereits verbucht.");
+      return;
+    }
+
+    const entries = s[dayKey(date)] || [];
+    const sums = sumEntries(entries);
+    const deficit = Math.max(0, (s.cut.maintenance || 0) - Math.round(sums.kcal || 0));
+
+    s.cut.budgetLeft = Math.max(0, (s.cut.budgetLeft || 0) - deficit);
+    s.cut.committedDays[date] = true;
+
+    saveState(s);
+    render();
+    alert(`Verbucht: ${deficit} kcal Defizit`);
+  }
+
+  $("commitDay")?.addEventListener("click", commitDeficitForCurrentDay);
+  $("drawerCommit")?.addEventListener("click", () => {
+    closeDrawer();
+    commitDeficitForCurrentDay();
+  });
+
+  $("resetCut")?.addEventListener("click", () => {
+    if (!confirm("Cut-Countdown komplett resetten?")) return;
+    const s = initDefaults(loadState());
+    s.cut.budgetStart = 0;
+    s.cut.budgetLeft = 0;
+    s.cut.committedDays = {};
+    saveState(s);
+    closeDrawer();
+    render();
+  });
+
+  // Templates manager (falls du noch keinen Manager hast -> öffnet Create Modal)
+  $("openTemplates")?.addEventListener("click", () => {
+    closeDrawer();
+    openModal("create");
+  });
+
+  // Export JSON
+  $("exportData")?.addEventListener("click", () => {
+    const s = initDefaults(loadState());
+    const blob = new Blob([JSON.stringify(s, null, 2)], { type: "application/json" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `ricos-mealtracker-backup-${todayISO()}.json`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  });
+
+  // Import JSON
+  $("importFile")?.addEventListener("change", async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const txt = await file.text();
+      const obj = JSON.parse(txt);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(obj));
+      alert("Import erfolgreich.");
+      closeDrawer();
+      render();
+    } catch (err) {
+      alert("Import fehlgeschlagen: " + (err?.message || err));
+    } finally {
+      e.target.value = "";
+    }
+  });
+
+  // Wipe all
+  $("wipeAll")?.addEventListener("click", () => {
+    if (!confirm("Wirklich ALLES löschen?")) return;
+    localStorage.removeItem(STORAGE_KEY);
+    closeDrawer();
+    render();
+  });
+
+  // Force update (Service Worker)
+  $("forceUpdate")?.addEventListener("click", async () => {
+    try {
+      if ("serviceWorker" in navigator) {
+        const regs = await navigator.serviceWorker.getRegistrations();
+        await Promise.all(regs.map((r) => r.unregister()));
+      }
+    } catch (_) {}
+    alert("Update erzwungen. Seite lädt neu…");
+    location.reload();
+  });
 }
 
 // ---------- boot ----------
@@ -536,3 +714,4 @@ document.addEventListener("DOMContentLoaded", () => {
   wireInstallFab();
   render();
 });
+
