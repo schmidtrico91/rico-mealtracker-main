@@ -6,7 +6,7 @@ const KCAL_PER_G_CARBS = 4;
 const KCAL_PER_G_FAT = 9;
 
 const STORAGE_KEY = "ricos_mealtracker_mobile_v1";
-
+let offAbort =null;
 let editingId = null;
 let scanStream = null;
 let scanRunning = false;
@@ -228,66 +228,113 @@ function updateKcalFromMacros(){
   document.getElementById("kcal").value = Math.round(kcal);
 }
 
-// ---------- OFF Search (DE-only) ----------
+// ---------------- OpenFoodFacts search (DE, faster + abortable) ----------------
+let offAbort = null;
+ 
 async function offSearch(q){
-  const status = document.getElementById("offStatus");
-  const results = document.getElementById("offResults");
-  results.innerHTML = "";
+  const status = $("offStatus"), box = $("offResults");
+  if(!status || !box) return;
+ 
+  const term = String(q || "").trim();
+  if(!term){
+    status.textContent = "Bitte Suchbegriff eingeben.";
+    box.innerHTML = "";
+    return;
+  }
+ 
   status.textContent = "Suche…";
-
+  box.innerHTML = "";
+ 
+  // Abort previous request (makes UI feel much faster)
+  try { if(offAbort) offAbort.abort(); } catch(_){}
+  offAbort = new AbortController();
+ 
+  // Request fewer fields + fewer results (big speed win)
   const url =
-    "https://world.openfoodfacts.org/api/v2/search" +
-    `?search_terms=${encodeURIComponent(q)}` +
-    "&countries_tags=de" +
-    "&page_size=20" +
-    "&fields=product_name,brands,code,nutriments" + 
-    "&fields=product_name,brands,nutriments.proteins_100g,nutriments.carbohydrates_100g,nutriments.fat_100g,nutriments.energy-kcal_100g,nutriments.energy_100g"
- ;
-
-  const res = await fetch(url);
-  if (!res.ok) throw new Error("OFF Anfrage fehlgeschlagen");
-  const data = await res.json();
-
-  const items = data?.products || [];
-  status.textContent = items.length ? `${items.length} Treffer` : "Keine Treffer";
-
-  for (const p of items){
-    const n = p.nutriments || {};
-    const name = p.product_name || "(ohne Name)";
-    const brand = p.brands ? ` • ${p.brands}` : "";
-    const p100 = Number(n.proteins_100g)||0;
-    const c100 = Number(n.carbohydrates_100g)||0;
-    const f100 = Number(n.fat_100g)||0;
-    const kcal100 = Number(n["energy-kcal_100g"]) || Math.round(calcKcalFromMacros(p100,c100,f100));
-
-    const el = document.createElement("div");
-    el.className = "item";
-    el.innerHTML = `
-      <div class="item-left">
-        <div class="item-name">${escapeHtml(name)}</div>
-        <div class="item-sub">100g • ${kcal100} kcal • P ${round1(p100)} • C ${round1(c100)} • F ${round1(f100)}</div>
-      </div>
-      <div class="item-right">
-        <div class="item-meta">${escapeHtml(brand)}</div>
-        <div class="actions">
-          <button class="btn btn-ghost" data-use="1">Übernehmen</button>
-        </div>
-      </div>
-    `;
-    el.querySelector("[data-use]").onclick = () => {
-  document.getElementById("name").value = name;
+    "https://de.openfoodfacts.org/cgi/search.pl"
+    + `?search_terms=${encodeURIComponent(term)}`
+    + `&search_simple=1`
+    + `&action=process`
+    + `&json=1`
+    + `&page_size=12`
+    + `&page=1`
+    + `&lc=de&cc=de`
+    // + `&nocache=1` // optional: enable if you ever see stale results
+    + `&fields=product_name,brands,`
+    + `nutriments.proteins_100g,`
+    + `nutriments.carbohydrates_100g,`
+    + `nutriments.fat_100g,`
+    + `nutriments.energy-kcal_100g,`
+    + `nutriments.energy_100g`;
  
-  // Basis auf 100g setzen
-  document.getElementById("grams").value = 100;
-  setPer100Base(p100, c100, f100, kcal100);
+  try{
+    const r = await fetch(url, { signal: offAbort.signal });
+    if(!r.ok) throw new Error(`OFF Fehler (${r.status})`);
+    const j = await r.json();
  
-  // Felder füllen & kcal berechnen
-  applyPer100ScalingIfPresent();
+    const products = (j.products || []).filter(p => p && p.nutriments);
+    if(!products.length){
+      status.textContent = `Keine Treffer für „${term}“.`;
+      return;
+    }
  
-  setView("create");
-};
+    status.textContent = `${products.length} Treffer für „${term}“`;
  
-    results.appendChild(el);
+    box.innerHTML = products.map(p=>{
+      const name = (p.product_name || "Unbenannt").trim();
+      const brand = (p.brands || "").trim();
+      const n = p.nutriments || {};
+ 
+      const p100 = normalizeOFF(parseFloat(n.proteins_100g));
+      const c100 = normalizeOFF(parseFloat(n.carbohydrates_100g));
+      const f100 = normalizeOFF(parseFloat(n.fat_100g));
+ 
+      const kcal100 =
+        normalizeOFF(parseFloat(n["energy-kcal_100g"])) ||
+        (normalizeOFF(parseFloat(n.energy_100g)) ? normalizeOFF(parseFloat(n.energy_100g))/4.184 : 0);
+ 
+      const kcalShow = kcal100
+        ? Math.round(kcal100)
+        : Math.round(calcKcalFromMacros(p100, c100, f100));
+ 
+      return `
+        <div class="item">
+          <div class="item-main">
+            <div class="item-name">${escapeHtml(name)}${brand ? ` <span class="muted small">(${escapeHtml(brand)})</span>` : ""}</div>
+            <div class="muted small">pro 100g: ${kcalShow} kcal · P ${round1(p100)} · C ${round1(c100)} · F ${round1(f100)}</div>
+          </div>
+          <div class="item-actions">
+            <button class="btn btn-ghost" data-use="1">Übernehmen</button>
+          </div>
+        </div>`;
+    }).join("");
+ 
+    [...box.querySelectorAll('[data-use="1"]')].forEach((btn, idx)=>{
+      btn.addEventListener("click", ()=>{
+        const p = products[idx];
+        const n = p?.nutriments || {};
+        const name = (p?.product_name || "Unbenannt").trim();
+ 
+        const p100 = normalizeOFF(parseFloat(n.proteins_100g));
+        const c100 = normalizeOFF(parseFloat(n.carbohydrates_100g));
+        const f100 = normalizeOFF(parseFloat(n.fat_100g));
+ 
+        const kcal100 =
+          normalizeOFF(parseFloat(n["energy-kcal_100g"])) ||
+          (normalizeOFF(parseFloat(n.energy_100g)) ? normalizeOFF(parseFloat(n.energy_100g))/4.184 : 0);
+ 
+        $("name").value = name;
+        $("grams").value = 100;
+        setPer100Base(p100, c100, f100, kcal100);
+        applyPer100ScalingIfPresent();
+        openModal("create");
+      });
+    });
+ 
+  }catch(e){
+    // Ignore aborts (user typed a new search)
+    if(e && e.name === "AbortError") return;
+    status.textContent = "Fehler: " + (e?.message || e);
   }
 }
 
@@ -825,6 +872,7 @@ function wire(){
   updateKcalFromMacros();
   render();
 })();
+
 
 
 
