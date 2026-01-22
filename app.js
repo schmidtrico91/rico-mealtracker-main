@@ -599,6 +599,7 @@ async function forceUpdate() {
     alert("Update fehlgeschlagen: " + (e?.message || e));
   }
 }
+
 // -------------------- Render --------------------
 function render() {
   const state = initDefaults(loadState());
