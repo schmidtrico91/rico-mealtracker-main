@@ -17,6 +17,83 @@ let scanStream = null;
 let scanRunning = false;
 let deferredInstallPrompt = null;
 
+let deferredInstallPrompt = null;
+ 
+// Listener SOFORT registrieren (damit wir das Event nicht verpassen)
+window.addEventListener("beforeinstallprompt", (e) => {
+  e.preventDefault();
+  deferredInstallPrompt = e;
+ 
+  const fab = document.getElementById("installFab");
+  // Button nur zeigen, wenn nicht bereits standalone
+  if (fab && !isStandalone()) fab.classList.remove("hidden");
+});
+ 
+window.addEventListener("appinstalled", () => {
+  deferredInstallPrompt = null;
+  const fab = document.getElementById("installFab");
+  if (fab) fab.classList.add("hidden");
+});
+ 
+function isStandalone() {
+  return (
+    window.matchMedia("(display-mode: standalone)").matches ||
+    window.navigator.standalone === true
+  );
+}
+ 
+function showInstallToast(msg) {
+  // minimaler Fallback-Hinweis (verschwindet automatisch)
+  let t = document.getElementById("installToast");
+  if (!t) {
+    t = document.createElement("div");
+    t.id = "installToast";
+    t.className = "installToast";
+    document.body.appendChild(t);
+  }
+  t.textContent = msg;
+  t.classList.remove("hidden");
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => t.classList.add("hidden"), 3500);
+}
+ 
+function wireInstallFab() {
+  const fab = document.getElementById("installFab");
+  if (!fab) return;
+ 
+  // Wenn schon installiert -> verstecken
+  if (isStandalone()) {
+    fab.classList.add("hidden");
+    return;
+  }
+ 
+  // Button IMMER anbieten (nicht nur wenn beforeinstallprompt kam)
+  // => wenn Chrome das Event unterdrückt, zeigen wir Fallback-Hinweis.
+  fab.classList.remove("hidden");
+ 
+  fab.addEventListener("click", async () => {
+    // 1) Wenn echtes Prompt verfügbar -> nutzen
+    if (deferredInstallPrompt) {
+      fab.disabled = true;
+      try {
+        deferredInstallPrompt.prompt();
+        await deferredInstallPrompt.userChoice; // akzeptiert/abgelehnt
+      } catch (_) {
+        // ignore
+      } finally {
+        deferredInstallPrompt = null;
+        fab.disabled = false;
+        // wenn nicht installiert, Button bleibt sichtbar
+      }
+      return;
+    }
+ 
+    // 2) Fallback: Nutzer zum Menü schicken
+    showInstallToast("Installation über Chrome-Menü: ⋮  →  „App installieren“");
+  });
+}
+ 
+
 // -------------------- Utils --------------------
 function todayISO() { return new Date().toISOString().slice(0, 10); }
 function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2); }
@@ -925,4 +1002,5 @@ function wireInstallFab(){
   wireInstallFab();
   render();
 })();
+
 
