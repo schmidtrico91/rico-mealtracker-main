@@ -204,35 +204,44 @@
       <div class="modal-body">
 
         <!-- GOALS VIEW -->
-        <div id="viewGoals" class="view hidden">
-          <div class="muted small">Tagesziele einstellen (werden oben im Header angezeigt).</div>
-
-          <div class="row2 top10">
-            <div class="field">
-              <label for="goalKcal">Kalorien Ziel (kcal)</label>
-              <input id="goalKcal" type="number" min="0" step="10" />
-            </div>
-            <button id="goalsResetBtn" class="btn btn-ghost">Reset</button>
-          </div>
-
-          <div class="row3 top10">
-            <div class="field">
-              <label for="goalP">Protein (g)</label>
-              <input id="goalP" type="number" min="0" step="1" />
-            </div>
-            <div class="field">
-              <label for="goalC">Carbs (g)</label>
-              <input id="goalC" type="number" min="0" step="1" />
-            </div>
-            <div class="field">
-              <label for="goalF">Fett (g)</label>
-              <input id="goalF" type="number" min="0" step="1" />
-            </div>
-          </div>
-
-          <button id="goalsSaveBtn" class="btn top12">Ziele speichern</button>
-        </div>
-
+        <!-- GOALS VIEW -->
+<div id="viewGoals" class="view hidden">
+  <div class="muted small">
+    Tagesziele einstellen (werden oben im Header angezeigt). Sobald du Protein/Carbs/Fett änderst,
+    wird die Kalorien-Summe automatisch berechnet.
+  </div>
+ 
+  <div class="row2 top10">
+    <div class="field">
+      <label for="goalKcal">Kalorien Ziel (kcal)</label>
+      <input id="goalKcal" type="number" min="0" step="10" />
+    </div>
+    <button id="goalsResetBtn" class="btn btn-ghost">Reset</button>
+  </div>
+ 
+  <div class="row3 top10">
+    <div class="field">
+      <label for="goalP">Protein (g)</label>
+      <input id="goalP" type="number" min="0" step="1" />
+    </div>
+    <div class="field">
+      <label for="goalC">Carbs (g)</label>
+      <input id="goalC" type="number" min="0" step="1" />
+    </div>
+    <div class="field">
+      <label for="goalF">Fett (g)</label>
+      <input id="goalF" type="number" min="0" step="1" />
+    </div>
+  </div>
+ 
+  <!-- NEW: kcal calculated from macro goals -->
+  <div class="muted small top10">
+    Gesamt aus Makros: <b><span id="goalsKcalFromMacros">0</span> kcal</b>
+  </div>
+ 
+  <button id="goalsSaveBtn" class="btn top12">Ziele speichern</button>
+</div>
+ 
         <!-- CUT VIEW -->
         <div id="viewCut" class="view hidden">
           <div class="muted small">Cut-Countdown steuert dein Defizit-Budget (Restbudget sinkt durch tägliche Verbuchung).</div>
@@ -393,3 +402,4 @@
 
 </body>
 </html>
+
