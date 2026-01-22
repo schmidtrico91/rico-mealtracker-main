@@ -286,9 +286,19 @@
 
           <div class="row2 top10">
             <div class="field">
-              <label for="goalKcal">Kalorien Ziel (kcal)</label>
-              <input id="goalKcal" type="number" min="0" step="10" />
-            </div>
+  <label for="goalKcal">Kalorien (kalkuliert)</label>
+  <input
+    id="goalKcal"
+    type="number"
+    readonly
+    tabindex="-1"
+    class="readonly"
+  />
+  <div class="muted small">
+    Berechnet aus Protein, Carbs & Fett
+  </div>
+</div>
+ 
             <button id="goalsResetBtn" class="btn btn-ghost">Reset</button>
           </div>
 
@@ -397,3 +407,4 @@
 
 </body>
 </html>
+
