@@ -694,5 +694,23 @@ input:focus, select:focus{
 }
  
 .installFab:active{ transform: translateY(1px); }
- 
+
+.installToast{
+  position: fixed;
+  left: 14px;
+  right: 14px;
+  bottom: calc(var(--navH) + 78px + env(safe-area-inset-bottom));
+  z-index: 130;
+  background: rgba(0,0,0,.78);
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 14px;
+  padding: 10px 12px;
+  color: var(--text);
+  font-size: 13px;
+  backdrop-filter: blur(10px);
+}
+
+
+
+
 
