@@ -37,7 +37,46 @@ function initDefaults(s){
 function calcKcalFromMacros(p,c,f){
   return (p*KCAL_PER_G_PROTEIN) + (c*KCAL_PER_G_CARBS) + (f*KCAL_PER_G_FAT);
 }
-
+function setPer100Base(p100, c100, f100, kcal100 = null) {
+  const gramsEl = document.getElementById("grams");
+  gramsEl.dataset.per100 = "1";
+  gramsEl.dataset.p100 = String(p100 ?? 0);
+  gramsEl.dataset.c100 = String(c100 ?? 0);
+  gramsEl.dataset.f100 = String(f100 ?? 0);
+  gramsEl.dataset.kcal100 = String(kcal100 ?? "");
+}
+ 
+function clearPer100Base() {
+  const gramsEl = document.getElementById("grams");
+  delete gramsEl.dataset.per100;
+  delete gramsEl.dataset.p100;
+  delete gramsEl.dataset.c100;
+  delete gramsEl.dataset.f100;
+  delete gramsEl.dataset.kcal100;
+}
+ 
+function applyPer100ScalingIfPresent() {
+  const gramsEl = document.getElementById("grams");
+  if (gramsEl.dataset.per100 !== "1") return;
+ 
+  const g = num("grams");
+  if (!Number.isFinite(g) || g <= 0) return;
+ 
+  const p100 = parseFloat(gramsEl.dataset.p100 || "0") || 0;
+  const c100 = parseFloat(gramsEl.dataset.c100 || "0") || 0;
+  const f100 = parseFloat(gramsEl.dataset.f100 || "0") || 0;
+ 
+  const factor = g / 100;
+ 
+  document.getElementById("p").value = round1(p100 * factor);
+  document.getElementById("c").value = round1(c100 * factor);
+  document.getElementById("f").value = round1(f100 * factor);
+ 
+  // kcal auto (wenn nicht manuell)
+  document.getElementById("manualKcal").checked = false;
+  updateKcalFromMacros();
+}
+ 
 // Robust number parsing (supports comma)
 function num(id){
   const el = document.getElementById(id);
@@ -748,3 +787,4 @@ function wire(){
   updateKcalFromMacros();
   render();
 })();
+
