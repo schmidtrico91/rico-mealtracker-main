@@ -5,14 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Rico’s Mealtracker</title>
 
-  <!-- PWA essentials -->
+  <!-- PWA -->
   <link rel="manifest" href="/rico-mealtracker-main/manifest.webmanifest">
   <meta name="theme-color" content="#22d3ee">
   <link rel="icon" sizes="192x192" href="/rico-mealtracker-main/icons/icon-192.png">
   <link rel="apple-touch-icon" href="/rico-mealtracker-main/icons/icon-192.png">
 
-  <!-- Cache-bust CSS -->
-  <link rel="stylesheet" href="style.css?v=20260122-4" />
+  <link rel="stylesheet" href="style.css" />
 </head>
 
 <body>
@@ -63,30 +62,21 @@
       <button class="drawer-item" id="forceUpdate">Update erzwingen</button>
       <div class="drawer-note" id="appVersion">Version: –</div>
     </div>
-
-    <div class="drawer-section">
-      <div class="drawer-title">Hilfe</div>
-      <div class="drawer-note">
-        Scannen/Suchen/Neu öffnen als Modal. Kopf bleibt sichtbar.
-      </div>
-    </div>
   </aside>
 
   <!-- Topbar -->
   <header class="topbar">
     <button id="burger" class="iconbtn" aria-label="Menü öffnen">☰</button>
-
     <div class="brand center">
       <span class="brand-title brush">Rico’s Mealtracker</span>
     </div>
-
     <div class="topbar-right"></div>
   </header>
 
-  <!-- App -->
+  <!-- Main -->
   <main class="app">
 
-    <!-- Tagesübersicht / Ziele -->
+    <!-- Goals overview -->
     <section class="card hero">
       <div class="hero-title">Kalorien</div>
 
@@ -117,7 +107,7 @@
       </div>
     </section>
 
-    <!-- Cut Countdown -->
+    <!-- Cut -->
     <section class="card cut">
       <div class="cut-head">
         <div class="cut-label">CUT COUNTDOWN</div>
@@ -145,7 +135,7 @@
       </div>
     </section>
 
-    <!-- Datum Segment -->
+    <!-- Date -->
     <section class="card datecard">
       <div class="datecard-head">
         <div>
@@ -156,7 +146,7 @@
       </div>
     </section>
 
-    <!-- Tagesliste -->
+    <!-- Day list -->
     <section class="card content">
       <div class="content-head">
         <div>
@@ -167,15 +157,13 @@
 
       <div id="viewHome" class="view">
         <div class="list" id="dayList"></div>
-        <div id="emptyHint" class="emptyHint hidden">
-          Du hast heute noch nichts gegessen.
-        </div>
+        <div id="emptyHint" class="emptyHint hidden">Du hast heute noch nichts gegessen.</div>
       </div>
     </section>
 
   </main>
 
-  <!-- Bottom Nav fixed -->
+  <!-- Bottom Nav (MUSS data-modal haben!) -->
   <nav class="bottomnav">
     <button class="navbtn" data-modal="scan" aria-label="Scannen">
       <span class="navicon">▦</span>
@@ -193,7 +181,7 @@
     </button>
   </nav>
 
-  <!-- Modal container -->
+  <!-- Modal -->
   <section id="modal" class="modal hidden" aria-hidden="true">
     <div class="modal-sheet">
       <div class="modal-head">
@@ -203,116 +191,7 @@
 
       <div class="modal-body">
 
-        <!-- GOALS VIEW -->
-        <!-- GOALS VIEW -->
-<div id="viewGoals" class="view hidden">
-  <div class="muted small">
-    Tagesziele einstellen (werden oben im Header angezeigt). Sobald du Protein/Carbs/Fett änderst,
-    wird die Kalorien-Summe automatisch berechnet.
-  </div>
- 
-  <div class="row2 top10">
-    <div class="field">
-      <label for="goalKcal">Kalorien Ziel (kcal)</label>
-      <input id="goalKcal" type="number" min="0" step="10" />
-    </div>
-    <button id="goalsResetBtn" class="btn btn-ghost">Reset</button>
-  </div>
- 
-  <div class="row3 top10">
-    <div class="field">
-      <label for="goalP">Protein (g)</label>
-      <input id="goalP" type="number" min="0" step="1" />
-    </div>
-    <div class="field">
-      <label for="goalC">Carbs (g)</label>
-      <input id="goalC" type="number" min="0" step="1" />
-    </div>
-    <div class="field">
-      <label for="goalF">Fett (g)</label>
-      <input id="goalF" type="number" min="0" step="1" />
-    </div>
-  </div>
- 
-  <!-- NEW: kcal calculated from macro goals -->
-  <div class="muted small top10">
-    Gesamt aus Makros: <b><span id="goalsKcalFromMacros">0</span> kcal</b>
-  </div>
- 
-  <button id="goalsSaveBtn" class="btn top12">Ziele speichern</button>
-</div>
- 
-        <!-- CUT VIEW -->
-        <div id="viewCut" class="view hidden">
-          <div class="muted small">Cut-Countdown steuert dein Defizit-Budget (Restbudget sinkt durch tägliche Verbuchung).</div>
-
-          <div class="field top10">
-            <label for="cutMaint">Maintenance (kcal)</label>
-            <input id="cutMaint" type="number" min="0" step="10" />
-          </div>
-
-          <div class="field top10">
-            <label for="cutBudgetStart">Defizit-Budget Start (kcal)</label>
-            <input id="cutBudgetStart" type="number" min="0" step="100" />
-          </div>
-
-          <div class="row2 top10">
-            <button id="cutSaveBtn" class="btn">Speichern / Reset</button>
-            <button id="cutResetBtn" class="btn btn-danger">Cut Reset</button>
-          </div>
-
-          <div class="muted small top8">
-            Verbuchung: max(0, Maintenance − gegessene kcal). Pro Tag nur 1×.
-          </div>
-        </div>
-
-        <!-- TEMPLATES VIEW -->
-        <div id="viewTemplates" class="view hidden">
-          <div class="muted small">Templates speichern Makros pro 100g. Beim Anwenden werden sie auf Gramm skaliert.</div>
-
-          <div class="row2 top10">
-            <div class="field">
-              <label for="tplPick">Template auswählen</label>
-              <select id="tplPick"></select>
-            </div>
-            <button id="tplApplyToCreateBtn" class="btn btn-ghost">In “Neu” laden</button>
-          </div>
-
-          <div class="field top10">
-            <label for="tplEditName">Name</label>
-            <input id="tplEditName" type="text" placeholder="z.B. Reis+Chicken" />
-          </div>
-
-          <div class="row2 top10">
-            <div class="field">
-              <label for="tplEditBaseG">Basisgramm (Info)</label>
-              <input id="tplEditBaseG" type="number" min="1" step="1" placeholder="z.B. 100" />
-            </div>
-            <button id="tplUseCurrentBtn" class="btn btn-ghost">Aus aktuellem “Neu”</button>
-          </div>
-
-          <div class="row3 top10">
-            <div class="field">
-              <label for="tplEditP">Protein /100g</label>
-              <input id="tplEditP" type="number" min="0" step="0.1" />
-            </div>
-            <div class="field">
-              <label for="tplEditC">Carbs /100g</label>
-              <input id="tplEditC" type="number" min="0" step="0.1" />
-            </div>
-            <div class="field">
-              <label for="tplEditF">Fett /100g</label>
-              <input id="tplEditF" type="number" min="0" step="0.1" />
-            </div>
-          </div>
-
-          <div class="row2 top10">
-            <button id="tplSaveBtn2" class="btn">Speichern</button>
-            <button id="tplDeleteBtn2" class="btn btn-danger">Löschen</button>
-          </div>
-        </div>
-
-        <!-- SEARCH VIEW -->
+        <!-- SEARCH -->
         <div id="viewSearch" class="view hidden">
           <div class="muted small">Suche in Open Food Facts.</div>
           <div class="row2 top8">
@@ -323,29 +202,31 @@
           <div class="list top8" id="offResults"></div>
         </div>
 
-        <!-- CREATE VIEW -->
+        <!-- CREATE -->
         <div id="viewCreate" class="view hidden">
           <div class="muted small">Neuen Eintrag hinzufügen (oder aus Scan/Suche übernehmen)</div>
-          <div class="row2 top10">
-  <div class="field">
-    <label for="tplSelectQuick">Template auswählen</label>
-    <select id="tplSelectQuick"></select>
-  </div>
-  <button id="applyTplQuick" class="btn btn-ghost">Anwenden</button>
-</div>
- 
-<div class="row2 top10">
-  <div class="field">
-    <label for="recentSelect">Zuletzt benutzt</label>
-    <select id="recentSelect"></select>
-  </div>
-  <button id="applyRecent" class="btn btn-ghost">Anwenden</button>
-</div>
- 
 
           <div class="field top10">
             <label for="name">Name</label>
             <input id="name" type="text" placeholder="Meal / Food" />
+          </div>
+
+          <!-- Quick Template -->
+          <div class="row2 top10">
+            <div class="field">
+              <label for="tplSelectQuick">Template</label>
+              <select id="tplSelectQuick"></select>
+            </div>
+            <button id="applyTplQuick" class="btn btn-ghost">Anwenden</button>
+          </div>
+
+          <!-- Recents -->
+          <div class="row2 top10">
+            <div class="field">
+              <label for="recentSelect">Zuletzt benutzt</label>
+              <select id="recentSelect"></select>
+            </div>
+            <button id="applyRecent" class="btn btn-ghost">Einfügen</button>
           </div>
 
           <div class="row3 top10">
@@ -381,7 +262,7 @@
           <button id="add" class="btn top12">Hinzufügen</button>
         </div>
 
-        <!-- SCAN VIEW -->
+        <!-- SCAN -->
         <div id="viewScan" class="view hidden">
           <div class="muted small">Barcode scannen (Android Chrome).</div>
 
@@ -397,6 +278,104 @@
           </div>
         </div>
 
+        <!-- GOALS -->
+        <div id="viewGoals" class="view hidden">
+          <div class="muted small">
+            Tagesziele einstellen. Kalorien aus Makros werden live berechnet.
+          </div>
+
+          <div class="row2 top10">
+            <div class="field">
+              <label for="goalKcal">Kalorien Ziel (kcal)</label>
+              <input id="goalKcal" type="number" min="0" step="10" />
+            </div>
+            <button id="goalsResetBtn" class="btn btn-ghost">Reset</button>
+          </div>
+
+          <div class="row3 top10">
+            <div class="field">
+              <label for="goalP">Protein (g)</label>
+              <input id="goalP" type="number" min="0" step="1" />
+            </div>
+            <div class="field">
+              <label for="goalC">Carbs (g)</label>
+              <input id="goalC" type="number" min="0" step="1" />
+            </div>
+            <div class="field">
+              <label for="goalF">Fett (g)</label>
+              <input id="goalF" type="number" min="0" step="1" />
+            </div>
+          </div>
+
+          <div class="muted small top10">
+            Gesamt aus Makros: <b><span id="goalsKcalFromMacros">0</span> kcal</b>
+          </div>
+
+          <button id="goalsSaveBtn" class="btn top12">Ziele speichern</button>
+        </div>
+
+        <!-- CUT SETTINGS -->
+        <div id="viewCut" class="view hidden">
+          <div class="muted small">Cut-Countdown Einstellungen</div>
+
+          <div class="field top10">
+            <label for="cutMaint">Maintenance (kcal)</label>
+            <input id="cutMaint" type="number" min="0" step="10" />
+          </div>
+
+          <div class="field top10">
+            <label for="cutBudgetStart">Defizit-Budget Start (kcal)</label>
+            <input id="cutBudgetStart" type="number" min="0" step="100" />
+          </div>
+
+          <div class="row2 top10">
+            <button id="cutSaveBtn" class="btn">Speichern / Reset</button>
+            <button id="cutResetBtn" class="btn btn-danger">Reset</button>
+          </div>
+        </div>
+
+        <!-- TEMPLATES -->
+        <div id="viewTemplates" class="view hidden">
+          <div class="muted small">Template Manager (pro 100g)</div>
+
+          <div class="row2 top10">
+            <select id="tplPick"></select>
+            <button id="tplApplyToCreateBtn" class="btn btn-ghost">In "Neu" übernehmen</button>
+          </div>
+
+          <div class="field top10">
+            <label for="tplEditName">Template-Name</label>
+            <input id="tplEditName" type="text" placeholder="z.B. Reis + Chicken" />
+          </div>
+
+          <div class="field top10">
+            <label for="tplEditBaseG">Basisgramm (empf. 100)</label>
+            <input id="tplEditBaseG" type="number" min="1" step="1" />
+          </div>
+
+          <div class="row3 top10">
+            <div class="field">
+              <label for="tplEditP">Protein / 100g</label>
+              <input id="tplEditP" type="number" min="0" step="0.1" />
+            </div>
+            <div class="field">
+              <label for="tplEditC">Carbs / 100g</label>
+              <input id="tplEditC" type="number" min="0" step="0.1" />
+            </div>
+            <div class="field">
+              <label for="tplEditF">Fett / 100g</label>
+              <input id="tplEditF" type="number" min="0" step="0.1" />
+            </div>
+          </div>
+
+          <div class="row2 top10">
+            <button id="tplUseCurrentBtn" class="btn btn-ghost">Aktuellen "Neu"-Eintrag → 100g</button>
+            <button id="tplSaveBtn2" class="btn">Speichern</button>
+          </div>
+
+          <button id="tplDeleteBtn2" class="btn btn-danger top10">Template löschen</button>
+        </div>
+
       </div>
     </div>
   </section>
@@ -404,10 +383,10 @@
   <!-- Install FAB -->
   <button id="installFab" class="installFab hidden" aria-label="App installieren">Installieren</button>
 
-  <!-- Cache-bust JS -->
-  <script src="app.js?v=20260122-4"></script>
+  <!-- JS -->
+  <script src="app.js?v=20260122-5"></script>
 
-  <!-- Service Worker register -->
+  <!-- SW register -->
   <script>
     if ("serviceWorker" in navigator) {
       window.addEventListener("load", () => {
@@ -418,6 +397,3 @@
 
 </body>
 </html>
-
-
-
