@@ -73,6 +73,29 @@ function refreshRecentSelect(){
     sel.appendChild(o);
   });
 }
+
+function applyRecentToCreate(recentId){
+  const s = initDefaults(loadState());
+  const r = (s.recents||[]).find(x=>x.id===recentId);
+  if(!r) return;
+ 
+  $("name").value = r.name || "";
+  $("grams").value = r.grams ?? 100;
+ 
+  // wenn per100 vorhanden -> Base setzen und skalieren
+  if(r.p100!=null || r.c100!=null || r.f100!=null){
+    setPer100Base(r.p100||0, r.c100||0, r.f100||0, r.kcal100||null);
+    applyPer100ScalingIfPresent();
+  }else{
+    clearPer100Base();
+    $("p").value = r.p || 0;
+    $("c").value = r.c || 0;
+    $("f").value = r.f || 0;
+    $("manualKcal").checked = false;
+    updateKcalFromMacros();
+  }
+}
+ 
  
 
 function num(id){
@@ -223,6 +246,10 @@ function openModal(which){
   if(which === "goals") prefillGoalsModal();
   if(which === "cut") prefillCutModal();
   if(which === "templates") prefillTemplatesModal();
+  if(which === "create"){
+    refreshQuickTemplateSelect();
+    refreshRecentSelect();
+  }
 }
 
 // ---------------- install FAB ----------------
@@ -677,6 +704,27 @@ function wire(){
     const manual=$("manualKcal")?.checked;
     const kcal = manual ? num("kcal") : calcKcalFromMacros(p,c,f);
 
+    // ---- Recents speichern (Top 12) ----
+const recentObj = {
+  id: uid(),
+  name,
+  grams,
+  p, c, f,
+  kcal: Math.round(kcal),
+  // wenn per100 aktiv, speichern wir zusätzlich per100
+  p100: $("grams")?.dataset.per100==="1" ? (parseFloat($("grams").dataset.p100||"0")||0) : null,
+  c100: $("grams")?.dataset.per100==="1" ? (parseFloat($("grams").dataset.c100||"0")||0) : null,
+  f100: $("grams")?.dataset.per100==="1" ? (parseFloat($("grams").dataset.f100||"0")||0) : null,
+  kcal100: $("grams")?.dataset.per100==="1" ? (parseFloat($("grams").dataset.kcal100||"")||null) : null
+};
+ 
+s.recents = (s.recents||[]).filter(x => x.name !== name); // dupes raus nach Name
+s.recents.unshift(recentObj);
+s.recents = s.recents.slice(0, 12);
+ 
+
+    
+
     // Save/update entry
     if(editingId){
       const idx=s[key].findIndex(x=>x.id===editingId);
@@ -954,6 +1002,19 @@ function wire(){
     location.reload();
   });
 
+  $("applyTplQuick")?.addEventListener("click", ()=>{
+  const id = $("tplSelectQuick")?.value;
+  if(!id) return alert("Bitte Template auswählen.");
+  applyTemplateToCreate(id);
+});
+ 
+$("applyRecent")?.addEventListener("click", ()=>{
+  const id = $("recentSelect")?.value;
+  if(!id) return alert("Bitte Eintrag auswählen.");
+  applyRecentToCreate(id);
+});
+ 
+
   // Initial values
   updateKcalFromMacros();
 }
@@ -970,6 +1031,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
   wireInstallFab();
   render();
 });
+
 
 
 
