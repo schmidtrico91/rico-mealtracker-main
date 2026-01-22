@@ -743,7 +743,7 @@ function wire(){
     s.goals.f = Math.max(0, parseFloat(String($("goalF").value||"0").replace(",", ".")) || 0);
 
     // OPTIONAL: Auto-set kcal goal from macros (if you want)
-    // s.goals.kcal = Math.round(calcKcalFromMacros(s.goals.p, s.goals.c, s.goals.f));
+    s.goals.kcal = Math.round(calcKcalFromMacros(s.goals.p, s.goals.c, s.goals.f));
 
     saveState(s);
     closeModal();
@@ -919,5 +919,6 @@ document.addEventListener("DOMContentLoaded", ()=>{
   wireInstallFab();
   render();
 });
+
 
 
