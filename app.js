@@ -690,14 +690,15 @@ if (kcalBarEl) {
       const split = Math.round((markerPct / pct) * 100);
  
       kcalBarEl.style.background = `
-      linear-gradient(90deg,
-      var(--accent) 0%,
-      var(--accent2) ${split}%,   
-   
-    /* Bulk-Überschuss */
+  linear-gradient(90deg,
+    #7c3aed 0%,
+    #a78bfa ${split}%,
     #22c55e ${split}%,
     #22c55e ${split + (100 - split) * 0.8}%,
-    #f59e0b 100%)`;
+    #f59e0b 100%
+  )
+`;
+ 
     }
   }
 }
