@@ -594,4 +594,49 @@ input.readonly {
   opacity: 0.7;
   cursor: not-allowed;
 }
+/* ----- Create modal sections (Neu) ----- */
+.section{
+  border: 1px solid rgba(255,255,255,.08);
+  background: rgba(0,0,0,.10);
+  border-radius: 16px;
+  padding: 12px;
+}
  
+.section-head{
+  display:flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+ 
+.section-title{
+  font-weight: 900;
+  letter-spacing: .2px;
+}
+ 
+.grid2{
+  display:grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+ 
+.grid3{
+  display:grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 10px;
+}
+ 
+.btn-primary{
+  width: 100%;
+}
+ 
+/* Small screens: stack macro fields if needed */
+@media (max-width: 380px){
+  .grid3{ grid-template-columns: 1fr 1fr; }
+  .grid3 .field:last-child{ grid-column: 1 / -1; }
+}
+ 
+
+ 
+
