@@ -67,9 +67,11 @@
   <!-- Topbar -->
   <header class="topbar">
     <button id="burger" class="iconbtn" aria-label="Menü öffnen">☰</button>
+
     <div class="brand center">
       <span class="brand-title brush">Rico’s Mealtracker</span>
     </div>
+
     <div class="topbar-right"></div>
   </header>
 
@@ -163,7 +165,7 @@
 
   </main>
 
-  <!-- Bottom Nav (MUSS data-modal haben!) -->
+  <!-- Bottom Nav (app.js erwartet data-modal) -->
   <nav class="bottomnav">
     <button class="navbtn" data-modal="scan" aria-label="Scannen">
       <span class="navicon">▦</span>
@@ -201,81 +203,27 @@
           <div class="muted small top8" id="offStatus"></div>
           <div class="list top8" id="offResults"></div>
         </div>
-      
 
-<!-- CREATE (compact) -->
-<div id="viewCreate" class="view hidden">
- 
-  <!-- Quick pick row -->
-  <div class="row2 top8">
-    <div class="field">
-      <label for="recentSelect">Zuletzt</label>
-      <select id="recentSelect"></select>
-    </div>
-    <div class="field">
-      <label for="tplSelectQuick">Vorlage</label>
-      <select id="tplSelectQuick"></select>
-    </div>
-  </div>
- 
-  <!-- Name -->
-  <div class="field top10">
-    <label for="name">Name</label>
-    <input id="name" type="text" placeholder="z.B. Reis + Chicken" />
-  </div>
- 
-  <!-- Grams + kcal + toggle (tight) -->
-  <div class="create-tight top10">
-    <div class="field">
-      <label for="grams">g</label>
-      <input id="grams" type="number" min="0" step="1" placeholder="250" inputmode="numeric" />
-    </div>
- 
-    <div class="field">
-      <label for="kcal">kcal</label>
-      <input id="kcal" type="number" min="0" step="1" inputmode="numeric" />
-    </div>
- 
-    <label class="pill toggle create-toggle">
-      <input id="manualKcal" type="checkbox" />
-      manuell
-    </label>
-  </div>
- 
-  <!-- Macros -->
-  <div class="create-macros top10">
-    <div class="field">
-      <label for="p">P</label>
-      <input id="p" type="number" min="0" step="0.1" inputmode="decimal" />
-    </div>
-    <div class="field">
-      <label for="c">C</label>
-      <input id="c" type="number" min="0" step="0.1" inputmode="decimal" />
-    </div>
-    <div class="field">
-      <label for="f">F</label>
-      <input id="f" type="number" min="0" step="0.1" inputmode="decimal" />
-    </div>
-  </div>
- 
-  <button id="add" class="btn top12">Hinzufügen</button>
-</div>
- 
- 
+        <!-- CREATE -->
+        <div id="viewCreate" class="view hidden">
+          <div class="muted small">Neuen Eintrag hinzufügen</div>
 
-          <!-- Quick Template -->
-        <div class="field top10">
-          <label for="tplSelectQuick">Template</label>
-          <select id="tplSelectQuick"></select>
-        </div>
- 
+          <!-- Auswahl: Recents + Templates (ohne extra Buttons; Auswahl übernimmt direkt in JS, falls du das so umgesetzt hast) -->
+          <div class="row2 top10">
+            <div class="field">
+              <label for="recentSelect">Zuletzt benutzt</label>
+              <select id="recentSelect"></select>
+            </div>
+            <div class="field">
+              <label for="tplSelectQuick">Template</label>
+              <select id="tplSelectQuick"></select>
+            </div>
+          </div>
 
-          <!-- Recents -->
-         <div class="field top10">
-           <label for="recentSelect">Zuletzt benutzt</label>
-           <select id="recentSelect"></select>
-         </div>
- 
+          <div class="field top10">
+            <label for="name">Name</label>
+            <input id="name" type="text" placeholder="Meal / Food" />
+          </div>
 
           <div class="row3 top10">
             <div class="field">
@@ -329,24 +277,15 @@
         <!-- GOALS -->
         <div id="viewGoals" class="view hidden">
           <div class="muted small">
-            Tagesziele einstellen. Kalorien aus Makros werden live berechnet.
+            Tagesziele einstellen. Kalorien werden aus Makros live berechnet.
           </div>
 
           <div class="row2 top10">
             <div class="field">
-  <label for="goalKcal">Kalorien (kalkuliert)</label>
-  <input
-    id="goalKcal"
-    type="number"
-    readonly
-    tabindex="-1"
-    class="readonly"
-  />
-  <div class="muted small">
-    Berechnet aus Protein, Carbs & Fett
-  </div>
-</div>
- 
+              <label for="goalKcal">Kalorien (kalkuliert)</label>
+              <input id="goalKcal" type="number" readonly tabindex="-1" class="readonly" />
+              <div class="muted small">Berechnet aus Protein, Carbs & Fett</div>
+            </div>
             <button id="goalsResetBtn" class="btn btn-ghost">Reset</button>
           </div>
 
@@ -434,15 +373,15 @@
           <button id="tplDeleteBtn2" class="btn btn-danger top10">Template löschen</button>
         </div>
 
-      </div>
-    </div>
-  </section>
+      </div><!-- /modal-body -->
+    </div><!-- /modal-sheet -->
+  </section><!-- /modal -->
 
   <!-- Install FAB -->
   <button id="installFab" class="installFab hidden" aria-label="App installieren">Installieren</button>
 
   <!-- JS -->
-  <script src="app.js?v=20260122-5"></script>
+  <script src="app.js?v=20260122-6"></script>
 
   <!-- SW register -->
   <script>
@@ -455,7 +394,3 @@
 
 </body>
 </html>
-
-
-
-
