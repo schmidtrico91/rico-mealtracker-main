@@ -685,6 +685,23 @@ function render(){
       marker.style.display = "none";
     }
   }
+
+  // ----------------------------
+// Cut / Bulk Modal Texte
+// ----------------------------
+const cutModalTitle = $("cutModalTitle");
+const cutBudgetLabel = $("cutBudgetLabel");
+ 
+if (mode === "bulk") {
+  if (cutModalTitle) cutModalTitle.textContent = "Bulk-Counter Einstellungen";
+  if (cutBudgetLabel) cutBudgetLabel.textContent = "Überschuss-Budget Start (kcal)";
+} else {
+  if (cutModalTitle) cutModalTitle.textContent = "Cut-Countdown Einstellungen";
+  if (cutBudgetLabel) cutBudgetLabel.textContent = "Defizit-Budget Start (kcal)";
+}
+ 
+
+  
  
   // --- cut/bulk progress ---
   setText("budgetLeft", Math.max(0, Math.round(state.cut.budgetLeft || 0)));
@@ -1159,6 +1176,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
   wireInstallFab();
   render();
 });
+
 
 
 
