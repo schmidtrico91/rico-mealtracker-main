@@ -809,11 +809,66 @@ input.readonly {
 .switch input:checked + .slider::before {
   transform: translateX(20px);
 }
+ /* --- Drawer Switch (Cut/Bulk) --- */
+.switch{
+  position: relative;
+  display: inline-block;
+  width: 52px;
+  height: 30px;
+  flex: 0 0 auto;
+}
+ 
+.switch input{
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+ 
+.switch .slider{
+  position: absolute;
+  inset: 0;
+  cursor: pointer;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.10);
+  border: 1px solid rgba(255,255,255,0.12);
+  transition: 0.2s ease;
+}
+ 
+.switch .slider:before{
+  content: "";
+  position: absolute;
+  height: 22px;
+  width: 22px;
+  left: 4px;
+  top: 3px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.85);
+  transition: 0.2s ease;
+}
+ 
+.switch input:checked + .slider{
+  background: rgba(34,211,238,0.22);
+  border-color: rgba(34,211,238,0.35);
+}
+ 
+.switch input:checked + .slider:before{
+  transform: translateX(22px);
+  background: rgba(34,211,238,0.95);
+}
+ 
+/* optional: besserer Touch-Target im Drawer */
+.drawer-toggle{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap: 12px;
+}
  
  
  
  
  
+
 
 
 
