@@ -203,13 +203,99 @@
         </div>
 
         <!-- CREATE -->
-        <div id="viewCreate" class="view hidden">
-          <div class="muted small">Neuen Eintrag hinzufügen (oder aus Scan/Suche übernehmen)</div>
-
-          <div class="field top10">
-            <label for="name">Name</label>
-            <input id="name" type="text" placeholder="Meal / Food" />
-          </div>
+       <!-- CREATE -->
+<div id="viewCreate" class="view hidden">
+  <div class="muted small">
+    Neuen Eintrag hinzufügen (oder aus Suche/Scan übernehmen)
+  </div>
+ 
+  <!-- SECTION: Auswahl -->
+  <div class="section top12">
+    <div class="section-head">
+      <div class="section-title">Auswahl</div>
+      <div class="muted small">Schnell übernehmen</div>
+    </div>
+ 
+    <div class="field top8">
+      <label for="recentSelect">Zuletzt benutzt</label>
+      <select id="recentSelect"></select>
+      <div class="muted small">Tip: Auswahl übernimmt Name + Werte direkt.</div>
+    </div>
+ 
+    <div class="field top10">
+      <label for="tplSelectQuick">Vorlagen (optional)</label>
+      <select id="tplSelectQuick"></select>
+      <div class="muted small">Tip: Auswahl übernimmt Werte direkt.</div>
+    </div>
+  </div>
+ 
+  <!-- SECTION: Basisdaten -->
+  <div class="section top12">
+    <div class="section-head">
+      <div class="section-title">Eintrag</div>
+      <div class="muted small">Name & Menge</div>
+    </div>
+ 
+    <div class="field top8">
+      <label for="name">Name</label>
+      <input id="name" type="text" placeholder="z.B. Reis + Chicken" />
+    </div>
+ 
+    <div class="grid2 top10">
+      <div class="field">
+        <label for="grams">Gramm</label>
+        <input id="grams" type="number" min="0" step="1" placeholder="z.B. 250" inputmode="numeric" />
+      </div>
+ 
+      <div class="field">
+        <label for="kcal">kcal</label>
+        <input id="kcal" type="number" min="0" step="1" inputmode="numeric" />
+        <div class="muted small">Auto aus Makros (wenn nicht manuell).</div>
+      </div>
+    </div>
+ 
+    <label class="pill toggle top10">
+      <input id="manualKcal" type="checkbox" />
+      kcal manuell
+    </label>
+  </div>
+ 
+  <!-- SECTION: Makros -->
+  <div class="section top12">
+    <div class="section-head">
+      <div class="section-title">Makros</div>
+      <div class="muted small">Protein / Carbs / Fett</div>
+    </div>
+ 
+    <div class="grid3 top8">
+      <div class="field">
+        <label for="p">Protein (g)</label>
+        <input id="p" type="number" min="0" step="0.1" inputmode="decimal" />
+      </div>
+      <div class="field">
+        <label for="c">Carbs (g)</label>
+        <input id="c" type="number" min="0" step="0.1" inputmode="decimal" />
+      </div>
+      <div class="field">
+        <label for="f">Fett (g)</label>
+        <input id="f" type="number" min="0" step="0.1" inputmode="decimal" />
+      </div>
+    </div>
+ 
+    <div class="muted small top10">
+      Hinweis: Wenn du P/C/F manuell änderst, wird die per-100g Automatik deaktiviert (damit es nicht “gegen” dich rechnet).
+    </div>
+  </div>
+ 
+  <!-- ACTION -->
+  <div class="section top12">
+    <button id="add" class="btn btn-primary">Hinzufügen</button>
+    <div class="muted small top8">
+      Wird zum ausgewählten Datum in die Tagesübersicht hinzugefügt.
+    </div>
+  </div>
+</div>
+ 
 
           <!-- Quick Template -->
         <div class="field top10">
@@ -403,5 +489,6 @@
 
 </body>
 </html>
+
 
 
