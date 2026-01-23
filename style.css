@@ -911,4 +911,12 @@ input.readonly {
 .switch input:checked + .slider:before{
   transform: translateX(24px); /* 56 - 3 - 26 - 3 = 24 */
 }
+.drawer-toggle{
+  padding: 10px 10px;
+}
+.drawer-toggle .switch{
+  flex: 0 0 auto;
+}
  
+ 
+
