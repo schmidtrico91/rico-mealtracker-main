@@ -42,7 +42,7 @@
 <div class="drawer-section">
   <div class="drawer-title">Cut / Bulk</div>
  
-  <!-- Toggle -->
+  <!-- Sichtbarer Toggle (für dich) -->
   <div class="drawer-item drawer-toggle" style="display:flex;align-items:center;justify-content:space-between;">
     <span style="font-weight:800;">Bulk-Modus</span>
  
@@ -54,6 +54,12 @@
  
   <div class="drawer-note" id="modeLabel">Aktiv: Cut</div>
  
+  <!-- Unsichtbarer Select (Kompatibilität für ältere app.js, die modeSelect nutzt) -->
+  <select id="modeSelect" style="display:none">
+    <option value="cut">cut</option>
+    <option value="bulk">bulk</option>
+  </select>
+ 
   <button class="drawer-item" id="openCut">Budget / Maintenance</button>
   <button class="drawer-item" id="drawerCommit">Heute verbuchen</button>
   <button class="drawer-item danger" id="resetCut">Reset</button>
@@ -62,7 +68,8 @@
     Cut: verbucht <b>Maintenance − gegessen</b> (min. 0)<br>
     Bulk: verbucht <b>gegessen − Maintenance</b> (min. 0)
   </div>
-</div>  
+</div>
+ 
  
   <!-- Templates -->
   <div class="drawer-section">
@@ -437,6 +444,7 @@
 
 </body>
 </html>
+
 
 
 
