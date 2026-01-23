@@ -705,8 +705,9 @@ if (kcalBarEl) {
 
  
   // --- mode + maintenance (define ONCE) ---
-  //const mode = state.settings?.mode || "cut"; // "cut" | "bulk"
-
+const mode  = state.settings?.mode || "cut"; // "cut" | "bulk"
+const maint = Math.max(0, Math.round(state.cut?.maintenance || 0));
+ 
     // ----------------------------
 // Cut / Bulk Modal Texte
 // ----------------------------
@@ -719,9 +720,7 @@ if (mode === "bulk") {
 } else {
   if (cutModalTitle) cutModalTitle.textContent = "Cut-Countdown Einstellungen";
   if (cutBudgetLabel) cutBudgetLabel.textContent = "Defizit-Budget Start (kcal)";
-}
-  
-  const maint = Math.max(0, Math.round(state.cut.maintenance || 0));
+}  
  
   // --- maintenance marker (ONLY in bulk mode) ---
   const marker = $("maintMarker");
@@ -1210,6 +1209,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
   wireInstallFab();
   render();
 });
+
 
 
 
