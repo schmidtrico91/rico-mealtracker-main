@@ -889,14 +889,20 @@ function wire(){
     if(r.p100!=null || r.c100!=null || r.f100!=null){
       setPer100Base(r.p100||0, r.c100||0, r.f100||0, r.kcal100||null);
       applyPer100ScalingIfPresent();
-    }else{
-      clearPer100Base();
-      document.getElementById("p").value = r.p ?? 0;
-      document.getElementById("c").value = r.c ?? 0;
-      document.getElementById("f").value = r.f ?? 0;
-      document.getElementById("manualKcal").checked = false;
-      updateKcalFromMacros();
-    }
+    } else {
+    // Fallback: per100 aus gespeicherten Werten berechnen (proportional)
+    const g = (Number.isFinite(+r.grams) && +r.grams > 0) ? +r.grams : 100;
+ 
+    const p100 = (Number.isFinite(+r.p) ? (+r.p) : 0) * 100 / g;
+    const c100 = (Number.isFinite(+r.c) ? (+r.c) : 0) * 100 / g;
+    const f100 = (Number.isFinite(+r.f) ? (+r.f) : 0) * 100 / g;
+ 
+    // optional kcal100 (wenn du willst, sonst null)
+    const kcal100 = null;
+ 
+    setPer100Base(p100, c100, f100, kcal100);
+    applyPer100ScalingIfPresent();
+  } 
   });
 
   // ----------------------------
@@ -1210,6 +1216,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
   wireInstallFab();
   render();
 });
+
 
 
 
