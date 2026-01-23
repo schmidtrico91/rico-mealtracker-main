@@ -1,74 +1,47 @@
 /* =========================================================
    Rico’s Mealtracker – app.js
-   Budget in kg (UI) / kcal (intern)
-   ========================================================= */
+   Stable baseline with Cut/Bulk (kg UX, kcal internal)
+   Compatible with current index.html
+========================================================= */
 
-const STORAGE_KEY = "ricos-mealtracker-v1";
-const KCAL_PER_KG_FAT = 9000;
+/* ---------------- constants ---------------- */
+const KCAL_PER_KG_FAT = 9000; // 1 kg Fett = 9000 kcal
+const STORAGE_KEY = "ricos_mealtracker_main_v7";
 
-// ----------------------------
-// Helpers
-// ----------------------------
+/* ---------------- utils ---------------- */
 const $ = (id) => document.getElementById(id);
-const clamp01 = (v) => Math.max(0, Math.min(1, v));
 const todayISO = () => new Date().toISOString().slice(0, 10);
-const uid = () => Math.random().toString(36).slice(2);
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2);
+const clamp01 = (x) => Math.max(0, Math.min(1, x));
 
-const kcalToKg = (kcal) =>
-  Math.round((kcal / KCAL_PER_KG_FAT) * 10) / 10;
-
-const kgToKcal = (kg) =>
-  Math.round(kg * KCAL_PER_KG_FAT);
-
-const num = (id) =>
-  parseFloat(String($(id)?.value || "0").replace(",", ".")) || 0;
-
-const setText = (id, v) => {
-  const el = $(id);
-  if (el) el.textContent = v;
-};
-
-// ----------------------------
-// State
-// ----------------------------
 function loadState() {
-  try {
-    return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {};
-  } catch {
-    return {};
-  }
+  return JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
 }
-
 function saveState(s) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(s));
 }
 
 function initDefaults(s) {
-  s.goals ??= { kcal: 2400, p: 150, c: 300, f: 60 };
-  s.cut ??= {
-    maintenance: 2400,
-    budgetStart: 0,
-    budgetLeft: 0,
-    committedDays: {}
-  };
-  s.settings ??= { mode: "cut" };
-  s.recents ??= [];
-  s.templates ??= [];
-  s.lastDate ??= todayISO();
+  if (!s.goals) s.goals = { kcal: 2400, p: 150, c: 300, f: 60 };
+  if (!s.cut)
+    s.cut = {
+      maintenance: 2400,
+      budgetStartKcal: 0,
+      budgetLeftKcal: 0,
+      committedDays: {},
+    };
+  if (!s.settings) s.settings = { mode: "cut" };
+  if (!s.lastDate) s.lastDate = todayISO();
+  if (!s.recents) s.recents = [];
   return s;
 }
 
-const dayKey = (date) => `day_${date}`;
-
-// ----------------------------
-// Calculations
-// ----------------------------
-function calcKcalFromMacros(p, c, f) {
-  return p * 4 + c * 4 + f * 9;
+function dayKey(d) {
+  return `day_${d}`;
 }
 
-function sumEntries(arr) {
-  return arr.reduce(
+function sumEntries(entries) {
+  return (entries || []).reduce(
     (a, e) => {
       a.kcal += e.kcal || 0;
       a.p += e.p || 0;
@@ -80,196 +53,179 @@ function sumEntries(arr) {
   );
 }
 
-// ----------------------------
-// Render
-// ----------------------------
+/* ---------------- modal / drawer ---------------- */
+function openModal(which) {
+  $("overlay")?.classList.remove("hidden");
+  $("modal")?.classList.remove("hidden");
+  document.querySelectorAll(".view").forEach((v) => v.classList.add("hidden"));
+  const id = "view" + which[0].toUpperCase() + which.slice(1);
+  $(id)?.classList.remove("hidden");
+}
+function closeModal() {
+  $("modal")?.classList.add("hidden");
+  $("overlay")?.classList.add("hidden");
+}
+function openDrawer() {
+  $("drawer")?.classList.remove("hidden");
+  $("overlay")?.classList.remove("hidden");
+
+  const s = initDefaults(loadState());
+  const toggle = $("modeToggle");
+  if (toggle) toggle.checked = s.settings.mode === "bulk";
+  if ($("modeLabel"))
+    $("modeLabel").textContent =
+      s.settings.mode === "bulk" ? "Aktiv: Bulk" : "Aktiv: Cut";
+}
+function closeDrawer() {
+  $("drawer")?.classList.add("hidden");
+  $("overlay")?.classList.add("hidden");
+}
+
+/* ---------------- render ---------------- */
 function render() {
   const state = initDefaults(loadState());
-
-  // date
-  if ($("date")) $("date").value = state.lastDate;
   const date = state.lastDate;
 
-  // goals
-  setText("gKcal", state.goals.kcal);
-  setText("gP", state.goals.p);
-  setText("gC", state.goals.c);
-  setText("gF", state.goals.f);
-
-  // sums
   const entries = state[dayKey(date)] || [];
   const sums = sumEntries(entries);
 
-  setText("sumKcal", Math.round(sums.kcal));
-  setText("sumP", Math.round(sums.p));
-  setText("sumC", Math.round(sums.c));
-  setText("sumF", Math.round(sums.f));
+  // goals
+  $("gKcal").textContent = state.goals.kcal;
+  $("gP").textContent = state.goals.p;
+  $("gC").textContent = state.goals.c;
+  $("gF").textContent = state.goals.f;
+
+  // sums
+  $("sumKcal").textContent = Math.round(sums.kcal);
+  $("sumP").textContent = Math.round(sums.p);
+  $("sumC").textContent = Math.round(sums.c);
+  $("sumF").textContent = Math.round(sums.f);
 
   // kcal bar
-  const goalKcal = Math.max(1, state.goals.kcal);
-  const pct = clamp01(sums.kcal / goalKcal);
-  const kcalBar = $("kcalBar");
-
-  if (kcalBar) {
-    kcalBar.style.width = `${Math.round(pct * 100)}%`;
-    kcalBar.style.background =
-      "linear-gradient(90deg, var(--accent), var(--accent2))";
-
-    const mode = state.settings.mode;
-    if (mode === "bulk") {
-      const maint = state.cut.maintenance;
-      const markerPct = clamp01(maint / goalKcal);
-
-      if (pct > markerPct) {
-        const split = Math.round((markerPct / pct) * 100);
-        kcalBar.style.background = `
-          linear-gradient(90deg,
-            #7c3aed 0%,
-            #7c3aed ${split}%,
-            #22c55e ${split}%,
-            #22c55e ${split + (100 - split) * 0.8}%,
-            #f59e0b 100%)
-        `;
-      }
-    }
+  const goal = Math.max(0, state.goals.kcal);
+  const pct = goal > 0 ? clamp01(sums.kcal / goal) : 0;
+  const bar = $("kcalBar");
+  if (bar) {
+    bar.style.width = `${Math.round(pct * 100)}%`;
+    bar.style.background =
+      "linear-gradient(90deg, #7c3aed, #22d3ee)";
   }
 
-  // maintenance marker
+  // maintenance marker (bulk only)
   const marker = $("maintMarker");
-  if (marker) {
-    if (state.settings.mode === "bulk") {
-      const pctM = clamp01(state.cut.maintenance / goalKcal);
-      marker.style.left = `${Math.round(pctM * 100)}%`;
-      marker.style.display = "block";
-    } else {
-      marker.style.display = "none";
-    }
+  if (marker && state.settings.mode === "bulk" && goal > 0) {
+    const mPct = clamp01(state.cut.maintenance / goal);
+    marker.style.left = `${Math.round(mPct * 100)}%`;
+    marker.style.display = "block";
+  } else if (marker) {
+    marker.style.display = "none";
   }
 
-  // cut / bulk counter
-  const start = state.cut.budgetStart;
-  const left = state.cut.budgetLeft;
-
-  setText("budgetLeft", kcalToKg(left).toFixed(1));
-
-  const prog = start > 0 ? clamp01(1 - left / start) : 0;
-  if ($("cutBar")) $("cutBar").style.width = `${Math.round(prog * 100)}%`;
-  setText("cutPercent", Math.round(prog * 100));
-
-  // labels
-  const mode = state.settings.mode;
-  const cutLabel = document.querySelector(".cut-label");
-  if (cutLabel)
-    cutLabel.textContent = mode === "bulk" ? "BULK COUNTER" : "CUT COUNTDOWN";
+  // cut/bulk text
+  const label = document.querySelector(".cut-label");
+  if (label)
+    label.textContent =
+      state.settings.mode === "bulk" ? "BULK COUNTER" : "CUT COUNTDOWN";
 
   const commitBtn = $("commitDay");
   if (commitBtn)
     commitBtn.textContent =
-      mode === "bulk" ? "Überschuss verbuchen" : "Defizit verbuchen";
+      state.settings.mode === "bulk"
+        ? "Überschuss verbuchen"
+        : "Defizit verbuchen";
 
-  if ($("budgetHint")) {
-    $("budgetHint").textContent =
-      mode === "bulk"
-        ? `Ziel: ${kcalToKg(start).toFixed(1)} kg Zunahme`
-        : `Ziel: ${kcalToKg(start).toFixed(1)} kg Abnahme`;
-  }
+  // budget (kg display)
+  const kgLeft = (state.cut.budgetLeftKcal / KCAL_PER_KG_FAT).toFixed(1);
+  $("budgetLeft").textContent = kgLeft;
 
-  if ($("statusLine"))
-    $("statusLine").textContent = `${entries.length} Einträge · ${Math.round(
-      sums.kcal
-    )} kcal`;
+  $("statusLine").textContent = `${entries.length} Einträge · ${Math.round(
+    sums.kcal
+  )} kcal`;
 
-  if ($("appVersion"))
-    $("appVersion").textContent = "Version: 2026.1.2";
+  $("appVersion").textContent = "Version: 2026-01-23";
 
   renderDayList(state, date);
 }
 
-// ----------------------------
-// Day list
-// ----------------------------
+/* ---------------- day list ---------------- */
 function renderDayList(state, date) {
   const list = $("dayList");
   const empty = $("emptyHint");
-  if (!list) return;
-
-  list.innerHTML = "";
   const entries = state[dayKey(date)] || [];
 
   if (!entries.length) {
-    if (empty) empty.classList.remove("hidden");
+    list.innerHTML = "";
+    empty.classList.remove("hidden");
     return;
   }
-  if (empty) empty.classList.add("hidden");
+  empty.classList.add("hidden");
 
-  entries.forEach((e) => {
-    const div = document.createElement("div");
-    div.className = "list-item";
-    div.innerHTML = `
-      <div>
-        <b>${e.name}</b><br>
-        <span class="muted">${e.kcal} kcal · ${e.grams} g</span>
+  list.innerHTML = entries
+    .map(
+      (e) => `
+    <div class="item">
+      <div class="item-main">
+        <div class="item-name">${e.name}</div>
+        <div class="muted small">${e.grams} g · ${Math.round(
+        e.kcal
+      )} kcal</div>
       </div>
-    `;
-    list.appendChild(div);
-  });
+    </div>`
+    )
+    .join("");
 }
 
-// ----------------------------
-// Commit day
-// ----------------------------
-function commitDeficitForCurrentDay() {
-  const s = initDefaults(loadState());
-  const date = s.lastDate;
-  const key = dayKey(date);
-
-  if (s.cut.committedDays[date]) return alert("Heute bereits verbucht.");
-
-  const entries = s[key] || [];
-  const sums = sumEntries(entries);
-  const maint = s.cut.maintenance;
-
-  let delta = 0;
-  if (s.settings.mode === "cut") {
-    delta = Math.max(0, maint - sums.kcal);
-  } else {
-    delta = Math.max(0, sums.kcal - maint);
-  }
-
-  s.cut.budgetLeft = Math.max(0, s.cut.budgetLeft - delta);
-  s.cut.committedDays[date] = true;
-
-  saveState(s);
-  render();
-}
-
-// ----------------------------
-// Wire
-// ----------------------------
+/* ---------------- wire ---------------- */
 function wire() {
-  document
-    .querySelectorAll(".navbtn")
-    .forEach((b) =>
-      b.addEventListener("click", () => openModal(b.dataset.modal))
-    );
+  // bottom nav
+  document.querySelectorAll(".navbtn").forEach((b) =>
+    b.addEventListener("click", () => openModal(b.dataset.modal))
+  );
 
+  $("modalClose")?.addEventListener("click", closeModal);
   $("burger")?.addEventListener("click", openDrawer);
   $("drawerClose")?.addEventListener("click", closeDrawer);
-  $("modalClose")?.addEventListener("click", closeModal);
 
+  $("overlay")?.addEventListener("click", () => {
+    closeModal();
+    closeDrawer();
+  });
+
+  // date
   $("date")?.addEventListener("change", (e) => {
     const s = initDefaults(loadState());
-    s.lastDate = e.target.value || todayISO();
+    s.lastDate = e.target.value;
     saveState(s);
     render();
   });
 
-  $("commitDay")?.addEventListener("click", commitDeficitForCurrentDay);
-  $("drawerCommit")?.addEventListener("click", () => {
-    closeDrawer();
-    commitDeficitForCurrentDay();
+  // add entry
+  $("add")?.addEventListener("click", () => {
+    const s = initDefaults(loadState());
+    const date = s.lastDate;
+    if (!s[dayKey(date)]) s[dayKey(date)] = [];
+
+    const p = +$("p").value || 0;
+    const c = +$("c").value || 0;
+    const f = +$("f").value || 0;
+    const kcal = p * 4 + c * 4 + f * 9;
+
+    s[dayKey(date)].push({
+      id: uid(),
+      name: $("name").value || "Eintrag",
+      grams: +$("grams").value || 0,
+      p,
+      c,
+      f,
+      kcal,
+    });
+
+    saveState(s);
+    closeModal();
+    render();
   });
 
+  // mode toggle
   $("modeToggle")?.addEventListener("change", (e) => {
     const s = initDefaults(loadState());
     s.settings.mode = e.target.checked ? "bulk" : "cut";
@@ -277,23 +233,32 @@ function wire() {
     render();
   });
 
-  $("cutSaveBtn")?.addEventListener("click", () => {
+  // commit day
+  $("commitDay")?.addEventListener("click", () => {
     const s = initDefaults(loadState());
-    const kg = parseFloat(
-      String($("cutBudgetStart")?.value || "0").replace(",", ".")
-    );
-    s.cut.budgetStart = kgToKcal(kg);
-    s.cut.budgetLeft = s.cut.budgetStart;
-    s.cut.maintenance = num("cutMaint");
-    s.cut.committedDays = {};
+    const date = s.lastDate;
+    if (s.cut.committedDays[date]) return alert("Heute bereits verbucht.");
+
+    const entries = s[dayKey(date)] || [];
+    const sums = sumEntries(entries);
+
+    let delta =
+      s.settings.mode === "bulk"
+        ? Math.max(0, sums.kcal - s.cut.maintenance)
+        : Math.max(0, s.cut.maintenance - sums.kcal);
+
+    s.cut.budgetLeftKcal = Math.max(0, s.cut.budgetLeftKcal - delta);
+    s.cut.committedDays[date] = true;
     saveState(s);
-    closeModal();
     render();
   });
-
-  render();
 }
 
-// ----------------------------
-wire();
-render();
+/* ---------------- boot ---------------- */
+document.addEventListener("DOMContentLoaded", () => {
+  const s = initDefaults(loadState());
+  saveState(s);
+  if ($("date")) $("date").value = s.lastDate;
+  wire();
+  render();
+});
