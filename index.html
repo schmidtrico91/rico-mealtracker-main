@@ -258,21 +258,35 @@
           <button id="add" class="btn top12">Hinzufügen</button>
         </div>
 
-        <!-- SCAN -->
+      
+       <!-- SCAN -->
         <div id="viewScan" class="view hidden">
-          <div class="muted small">Barcode scannen (Android Chrome).</div>
-
-          <div class="row2 top10">
-            <button id="scanBtn" class="btn">📷 Scannen starten</button>
-            <button id="scanStop" class="btn btn-danger">Stop</button>
+       <!-- Kamera oben -->
+          <div class="scanCam">
+            <div id="scannerWrap" class="scanner scanScanner hidden">
+              <video id="scanVideo" playsinline></video>
+            </div>
+        <!-- optionaler Hinweis, wenn Kamera noch aus -->
+            <div id="scanCamHint" class="scanHint">
+              Tippe auf <b>Scannen starten</b>, um die Kamera zu öffnen.
+            </div>
           </div>
-
-          <div id="scanStatus" class="muted small top8"></div>
-
-          <div id="scannerWrap" class="scanner hidden top10">
-            <video id="scanVideo" playsinline></video>
+         <!-- Controls unten (Daumen-Zone) -->
+          <div class="scanControls">
+            <div class="scanTopRow">
+              <div class="muted small">Barcode scannen (Android Chrome).</div>
+              <div id="scanStatus" class="muted small"></div>
+            </div>
+            <div class="scanBtnRow">
+              <button id="scanBtn" class="btn scanBtnPrimary">📷 Scannen starten</button>
+              <button id="scanStop" class="btn btn-danger scanBtnStop">Stop</button>
+            </div>
+            <div class="muted small scanFoot">
+              Tipp: Halte die Packung ruhig, Barcode mittig ins Bild.
+            </div>
           </div>
         </div>
+ 
 
         <!-- GOALS -->
         <div id="viewGoals" class="view hidden">
@@ -394,3 +408,4 @@
 
 </body>
 </html>
+
