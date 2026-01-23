@@ -35,12 +35,27 @@
       <button class="drawer-item" id="resetGoals">Ziele zurücksetzen</button>
     </div>
 
-    <div class="drawer-section">
-      <div class="drawer-title">Cut-Countdown</div>
-      <button class="drawer-item" id="openCut">Cut Budget / Maintenance</button>
-      <button class="drawer-item" id="drawerCommit">Defizit heute buchen</button>
-      <button class="drawer-item danger" id="resetCut">Cut Reset</button>
-    </div>
+   <div class="drawer-section">
+     <div class="drawer-title">Cut / Bulk</div>
+     
+  <label class="drawer-item drawer-toggle">
+    <span>Modus</span>
+    <select id="modeSelect">
+      <option value="cut">Cut (Defizit)</option>
+      <option value="bulk">Bulk (Überschuss)</option>
+    </select>
+  </label>
+ 
+  <button class="drawer-item" id="openCut">Budget / Maintenance</button>
+  <button class="drawer-item" id="drawerCommit">Heute verbuchen</button>
+  <button class="drawer-item danger" id="resetCut">Reset</button>
+ 
+  <div class="drawer-note">
+    Cut: verbucht <b>Maintenance − gegessen</b> (min. 0)<br>
+    Bulk: verbucht <b>gegessen − Maintenance</b> (min. 0)
+  </div>
+   </div>
+ 
 
     <div class="drawer-section">
       <div class="drawer-title">Templates</div>
@@ -89,9 +104,11 @@
         <span class="unit">kcal</span>
       </div>
 
-      <div class="bar">
+      <div class="bar bar-kcal">
         <div id="kcalBar" class="bar-fill" style="width:0%"></div>
+        <div id="maintMarker" class="bar-marker" aria-hidden="true"></div>
       </div>
+ 
 
       <div class="macro-row">
         <div class="macro">
@@ -408,4 +425,5 @@
 
 </body>
 </html>
+
 
