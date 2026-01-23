@@ -1,526 +1,367 @@
 <!doctype html>
+
 <html lang="de">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>Rico’s Mealtracker</title>
-
-  <!-- PWA -->
-  <link rel="manifest" href="/rico-mealtracker-main/manifest.webmanifest">
-  <meta name="theme-color" content="#22d3ee">
-  <link rel="icon" sizes="192x192" href="/rico-mealtracker-main/icons/icon-192.png">
-  <link rel="apple-touch-icon" href="/rico-mealtracker-main/icons/icon-192.png">
-
-  <link rel="stylesheet" href="style.css" />
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1, viewport-fit=cover" name="viewport"/>
+<title>Rico’s Mealtracker</title>
+<!-- PWA -->
+<link href="/rico-mealtracker-main/manifest.webmanifest" rel="manifest"/>
+<meta content="#22d3ee" name="theme-color"/>
+<link href="/rico-mealtracker-main/icons/icon-192.png" rel="icon" sizes="192x192"/>
+<link href="/rico-mealtracker-main/icons/icon-192.png" rel="apple-touch-icon"/>
+<link href="style.css" rel="stylesheet"/>
 </head>
-
 <body>
-
-  <!-- Overlay -->
-  <div id="overlay" class="overlay hidden"></div>
-
- 
-  <!-- Drawer -->
-<aside id="drawer" class="drawer hidden" aria-hidden="true">
- 
-  <div class="drawer-head">
-    <div class="drawer-brand">
-      <span class="brand-mark">R</span>
-      <span class="brand-title brush">Rico’s Mealtracker</span>
-    </div>
-    <button id="drawerClose" class="iconbtn" aria-label="Menü schließen">✕</button>
-  </div>
- 
-  <!-- Tagesziele -->
-  <div class="drawer-section">
-    <div class="drawer-title">Tagesziele</div>
-    <button class="drawer-item" id="openGoals">Ziele bearbeiten</button>
-    <button class="drawer-item" id="resetGoals">Ziele zurücksetzen</button>
-  </div>
- 
-  <!-- Cut / Bulk -->
-<div class="drawer-section">
-  <div class="drawer-title">Cut / Bulk</div>
- 
-  <!-- Sichtbarer Toggle (für dich) -->
-  <div class="drawer-item drawer-toggle" style="display:flex;align-items:center;justify-content:space-between;">
-    <span style="font-weight:800;">Bulk-Modus</span>
- 
-    <label class="switch" aria-label="Bulk-Modus umschalten">
-      <input type="checkbox" id="modeToggle">
-      <span class="slider"></span>
-    </label>
-  </div>
- 
-  <div class="drawer-note" id="modeLabel">Aktiv: Cut</div>
- 
-  <!-- Unsichtbarer Select (Kompatibilität für ältere app.js, die modeSelect nutzt) -->
-  <select id="modeSelect" style="display:none">
-    <option value="cut">cut</option>
-    <option value="bulk">bulk</option>
-  </select>
- 
-  <button class="drawer-item" id="openCut">Budget / Maintenance</button>
-  <button class="drawer-item" id="drawerCommit">Heute verbuchen</button>
-  <button class="drawer-item danger" id="resetCut">Reset</button>
- 
-  <div class="drawer-note">
-    Cut: verbucht <b>Maintenance − gegessen</b> (min. 0)<br>
-    Bulk: verbucht <b>gegessen − Maintenance</b> (min. 0)
-  </div>
+<!-- Overlay -->
+<div class="overlay hidden" id="overlay"></div>
+<!-- Drawer -->
+<aside aria-hidden="true" class="drawer hidden" id="drawer">
+<div class="drawer-head">
+<div class="drawer-brand">
+<span class="brand-mark">R</span>
+<span class="brand-title brush">Rico’s Mealtracker</span>
 </div>
- 
- 
-  <!-- Templates -->
-  <div class="drawer-section">
-    <div class="drawer-title">Templates</div>
-    <button class="drawer-item" id="openTemplates">Template Manager</button>
-  </div>
- 
-  <!-- Daten -->
-  <div class="drawer-section">
-    <div class="drawer-title">Daten & Backup</div>
-    <button class="drawer-item" id="exportData">Export (JSON)</button>
-    <label class="drawer-item filelike">
-      Import (JSON)
-      <input id="importFile" type="file" accept="application/json" hidden>
-    </label>
-    <button class="drawer-item danger" id="wipeAll">Alles löschen</button>
-  </div>
- 
-  <!-- App -->
-  <div class="drawer-section">
-    <div class="drawer-title">App</div>
-    <button class="drawer-item" id="forceUpdate">Update erzwingen</button>
-    <div class="drawer-note" id="appVersion">Version: –</div>
-  </div>
- 
-</aside>
- 
-
-  <!-- Topbar -->
-  <header class="topbar">
-    <button id="burger" class="iconbtn" aria-label="Menü öffnen">☰</button>
-
-    <div class="brand center">
-      <span class="brand-title brush">Rico’s Mealtracker</span>
+<button aria-label="Menü schließen" class="iconbtn" id="drawerClose">✕</button>
+</div>
+<!-- Tagesziele -->
+<div class="drawer-section">
+<div class="drawer-title">Tagesziele</div>
+<button class="drawer-item" id="openGoals">Ziele bearbeiten</button>
+<button class="drawer-item" id="resetGoals">Ziele zurücksetzen</button>
+</div>
+<!-- Cut / Bulk -->
+<div class="drawer-section">
+<div class="drawer-title">Cut / Bulk</div>
+<!-- Toggle -->
+<div class="drawer-item drawer-toggle" style="display:flex;align-items:center;justify-content:space-between;">
+<span style="font-weight:800;">Bulk-Modus</span>
+<label class="switch">
+<input id="modeToggle" type="checkbox"/>
+<span class="slider"></span>
+</label>
+</div>
+<div class="drawer-note" id="modeLabel">
+      Aktiv: Cut
     </div>
-
-    <div class="topbar-right"></div>
-  </header>
-
-  <!-- Main -->
-  <main class="app">
-
-    <!-- Goals overview -->
-    <section class="card hero">
-      <div class="hero-title">Kalorien</div>
-
-      <div class="hero-kcal">
-        <span id="sumKcal">0</span>
-        <span class="slash">/</span>
-        <span id="gKcal">0</span>
-        <span class="unit">kcal</span>
-      </div>
-
-      <div class="bar bar-kcal">
-        <div id="kcalBar" class="bar-fill" style="width:0%"></div>
-        <div id="maintMarker" class="bar-marker" aria-hidden="true"></div>
-      </div>
- 
-
-      <div class="macro-row">
-        <div class="macro">
-          <div class="macro-top"><span class="dot dot-p"></span><span>Protein</span></div>
-          <div class="macro-val"><b id="sumP">0</b>/<span id="gP">0</span><span class="g">g</span></div>
-        </div>
-        <div class="macro">
-          <div class="macro-top"><span class="dot dot-c"></span><span>Carbs</span></div>
-          <div class="macro-val"><b id="sumC">0</b>/<span id="gC">0</span><span class="g">g</span></div>
-        </div>
-        <div class="macro">
-          <div class="macro-top"><span class="dot dot-f"></span><span>Fett</span></div>
-          <div class="macro-val"><b id="sumF">0</b>/<span id="gF">0</span><span class="g">g</span></div>
-        </div>
-      </div>
-    </section>
-
-    <!-- Cut -->
-    <section class="card cut">
-      <div class="cut-head">
-        <div class="cut-label">CUT COUNTDOWN</div>
-        <button id="commitDay" class="btn btn-warn">Defizit verbuchen</button>
-      </div>
-
-      <div class="cut-main">
-        <div class="cut-kpi">
-          <div class="cut-line">
-            <span class="muted">Restbudget</span>
-            <span class="mono"><b id="budgetLeft">–</b> kcal</span>
-          </div>
-          <div class="muted small" id="budgetHint"></div>
-        </div>
-
-        <div class="cut-progress">
-          <div class="bar bar-warn">
-            <div id="cutBar" class="bar-fill bar-fill-warn" style="width:0%"></div>
-          </div>
-          <div class="cut-progress-meta">
-            <span class="muted small">Fortschritt</span>
-            <span class="mono small"><span id="cutPercent">0</span>%</span>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- Date -->
-    <section class="card datecard">
-      <div class="datecard-head">
-        <div>
-          <div class="content-title">Tag auswählen</div>
-          <div class="muted small">Daten & Verbuchung gelten für dieses Datum</div>
-        </div>
-        <input id="date" type="date" class="date" />
-      </div>
-    </section>
-
-    <!-- Day list -->
-    <section class="card content">
-      <div class="content-head">
-        <div>
-          <div class="content-title">Tagesübersicht</div>
-          <div class="muted small" id="statusLine"></div>
-        </div>
-      </div>
-
-      <div id="viewHome" class="view">
-        <div class="list" id="dayList"></div>
-        <div id="emptyHint" class="emptyHint hidden">Du hast heute noch nichts gegessen.</div>
-      </div>
-    </section>
-
-  </main>
-
-  <!-- Bottom Nav (app.js erwartet data-modal) -->
-  <nav class="bottomnav">
-    <button class="navbtn" data-modal="scan" aria-label="Scannen">
-      <span class="navicon">▦</span>
-      <span class="navtxt">Scannen</span>
-    </button>
-
-    <button class="navbtn" data-modal="search" aria-label="Lebensmittel suchen">
-      <span class="navicon">⌕</span>
-      <span class="navtxt">Suchen</span>
-    </button>
-
-    <button class="navbtn" data-modal="create" aria-label="Neues erstellen">
-      <span class="navicon">＋</span>
-      <span class="navtxt">Neu</span>
-    </button>
-  </nav>
-
-  <!-- Modal -->
-  <section id="modal" class="modal hidden" aria-hidden="true">
-    <div class="modal-sheet">
-      <div class="modal-head">
-        <div class="modal-title" id="modalTitle">Modal</div>
-        <button id="modalClose" class="iconbtn" aria-label="Schließen">✕</button>
-      </div>
-
-      <div class="modal-body">
-
-        <!-- SEARCH -->
-        <div id="viewSearch" class="view hidden">
-          <div class="muted small">Suche in Open Food Facts.</div>
-          <div class="row2 top8">
-            <input id="offQuery" type="text" placeholder="z.B. Haferflocken" />
-            <button id="offSearchBtn" class="btn btn-ghost">Suchen</button>
-          </div>
-          <div class="muted small top8" id="offStatus"></div>
-          <div class="list top8" id="offResults"></div>
-        </div>
-
-        <!-- CREATE -->
-        <div id="viewCreate" class="view hidden">
-          <div class="muted small">Neuen Eintrag hinzufügen</div>
-
-          <!-- Auswahl: Recents + Templates (ohne extra Buttons; Auswahl übernimmt direkt in JS, falls du das so umgesetzt hast) -->
-          <div class="row2 top10">
-            <div class="field">
-              <label for="recentSelect">Zuletzt benutzt</label>
-              <select id="recentSelect"></select>
-            </div>
-            <div class="field">
-              <label for="tplSelectQuick">Template</label>
-              <select id="tplSelectQuick"></select>
-            </div>
-          </div>
-
-          <div class="field top10">
-            <label for="name">Name</label>
-            <input id="name" type="text" placeholder="Meal / Food" />
-          </div>
-
-          <div class="row3 top10">
-            <div class="field">
-              <label for="grams">Gramm</label>
-              <input id="grams" type="number" min="0" step="1" placeholder="z.B. 250" />
-            </div>
-            <div class="field">
-              <label for="kcal">kcal</label>
-              <input id="kcal" type="number" min="0" step="1" />
-            </div>
-            <label class="pill toggle">
-              <input id="manualKcal" type="checkbox" />
+<button class="drawer-item" id="openCut">Budget / Maintenance</button>
+<button class="drawer-item" id="drawerCommit">Heute verbuchen</button>
+<button class="drawer-item danger" id="resetCut">Reset</button>
+<div class="drawer-note">
+      Cut: verbucht <b>Maintenance − gegessen</b><br/>
+      Bulk: verbucht <b>gegessen − Maintenance</b>
+    </div>
+</div>
+<!-- Templates -->
+<div class="drawer-section">
+<div class="drawer-title">Templates</div>
+<button class="drawer-item" id="openTemplates">Template Manager</button>
+</div>
+<!-- Daten -->
+<div class="drawer-section">
+<div class="drawer-title">Daten &amp; Backup</div>
+<button class="drawer-item" id="exportData">Export (JSON)</button>
+<label class="drawer-item filelike">
+      Import (JSON)
+      <input accept="application/json" hidden="" id="importFile" type="file"/>
+</label>
+<button class="drawer-item danger" id="wipeAll">Alles löschen</button>
+</div>
+<!-- App -->
+<div class="drawer-section">
+<div class="drawer-title">App</div>
+<button class="drawer-item" id="forceUpdate">Update erzwingen</button>
+<div class="drawer-note" id="appVersion">Version: –</div>
+</div>
+</aside>
+<!-- Topbar -->
+<header class="topbar">
+<button aria-label="Menü öffnen" class="iconbtn" id="burger">☰</button>
+<div class="brand center">
+<span class="brand-title brush">Rico’s Mealtracker</span>
+</div>
+<div class="topbar-right"></div>
+</header>
+<!-- Main -->
+<main class="app">
+<!-- Goals overview -->
+<section class="card hero">
+<div class="hero-title">Kalorien</div>
+<div class="hero-kcal">
+<span id="sumKcal">0</span>
+<span class="slash">/</span>
+<span id="gKcal">0</span>
+<span class="unit">kcal</span>
+</div>
+<div class="bar bar-kcal">
+<div class="bar-fill" id="kcalBar" style="width:0%"></div>
+<div aria-hidden="true" class="bar-marker" id="maintMarker"></div>
+</div>
+<div class="macro-row">
+<div class="macro">
+<div class="macro-top"><span class="dot dot-p"></span><span>Protein</span></div>
+<div class="macro-val"><b id="sumP">0</b>/<span id="gP">0</span><span class="g">g</span></div>
+</div>
+<div class="macro">
+<div class="macro-top"><span class="dot dot-c"></span><span>Carbs</span></div>
+<div class="macro-val"><b id="sumC">0</b>/<span id="gC">0</span><span class="g">g</span></div>
+</div>
+<div class="macro">
+<div class="macro-top"><span class="dot dot-f"></span><span>Fett</span></div>
+<div class="macro-val"><b id="sumF">0</b>/<span id="gF">0</span><span class="g">g</span></div>
+</div>
+</div>
+</section>
+<!-- Cut -->
+<section class="card cut">
+<div class="cut-head">
+<div class="cut-label">CUT COUNTDOWN</div>
+<button class="btn btn-warn" id="commitDay">Defizit verbuchen</button>
+</div>
+<div class="cut-main">
+<div class="cut-kpi">
+<div class="cut-line">
+<span class="muted">Restbudget</span>
+<span class="mono"><b id="budgetLeft">–</b> kg</span>
+</div>
+<div class="muted small" id="budgetHint"></div>
+</div>
+<div class="cut-progress">
+<div class="bar bar-warn">
+<div class="bar-fill bar-fill-warn" id="cutBar" style="width:0%"></div>
+</div>
+<div class="cut-progress-meta">
+<span class="muted small">Fortschritt</span>
+<span class="mono small"><span id="cutPercent">0</span>%</span>
+</div>
+</div>
+</div>
+</section>
+<!-- Date -->
+<section class="card datecard">
+<div class="datecard-head">
+<div>
+<div class="content-title">Tag auswählen</div>
+<div class="muted small">Daten &amp; Verbuchung gelten für dieses Datum</div>
+</div>
+<input class="date" id="date" type="date"/>
+</div>
+</section>
+<!-- Day list -->
+<section class="card content">
+<div class="content-head">
+<div>
+<div class="content-title">Tagesübersicht</div>
+<div class="muted small" id="statusLine"></div>
+</div>
+</div>
+<div class="view" id="viewHome">
+<div class="list" id="dayList"></div>
+<div class="emptyHint hidden" id="emptyHint">Du hast heute noch nichts gegessen.</div>
+</div>
+</section>
+</main>
+<!-- Bottom Nav (app.js erwartet data-modal) -->
+<nav class="bottomnav">
+<button aria-label="Scannen" class="navbtn" data-modal="scan">
+<span class="navicon">▦</span>
+<span class="navtxt">Scannen</span>
+</button>
+<button aria-label="Lebensmittel suchen" class="navbtn" data-modal="search">
+<span class="navicon">⌕</span>
+<span class="navtxt">Suchen</span>
+</button>
+<button aria-label="Neues erstellen" class="navbtn" data-modal="create">
+<span class="navicon">＋</span>
+<span class="navtxt">Neu</span>
+</button>
+</nav>
+<!-- Modal -->
+<section aria-hidden="true" class="modal hidden" id="modal">
+<div class="modal-sheet">
+<div class="modal-head">
+<div class="modal-title" id="modalTitle">Modal</div>
+<button aria-label="Schließen" class="iconbtn" id="modalClose">✕</button>
+</div>
+<div class="modal-body">
+<!-- SEARCH -->
+<div class="view hidden" id="viewSearch">
+<div class="muted small">Suche in Open Food Facts.</div>
+<div class="row2 top8">
+<input id="offQuery" placeholder="z.B. Haferflocken" type="text"/>
+<button class="btn btn-ghost" id="offSearchBtn">Suchen</button>
+</div>
+<div class="muted small top8" id="offStatus"></div>
+<div class="list top8" id="offResults"></div>
+</div>
+<!-- CREATE -->
+<div class="view hidden" id="viewCreate">
+<div class="muted small">Neuen Eintrag hinzufügen</div>
+<div class="row2 top10">
+<div class="field">
+<label for="recentSelect">Zuletzt benutzt</label>
+<select id="recentSelect"></select>
+</div>
+<div class="field">
+<label for="tplSelectQuick">Template</label>
+<select id="tplSelectQuick"></select>
+</div>
+</div>
+<div class="field top10">
+<label for="name">Name</label>
+<input id="name" placeholder="Meal / Food" type="text"/>
+</div>
+<div class="row3 top10">
+<div class="field">
+<label for="grams">Gramm</label>
+<input id="grams" min="0" placeholder="z.B. 250" step="1" type="number"/>
+</div>
+<div class="field">
+<label for="kcal">kcal</label>
+<input id="kcal" min="0" step="1" type="number"/>
+</div>
+<label class="pill toggle">
+<input id="manualKcal" type="checkbox"/>
               kcal manuell
             </label>
-          </div>
-
-          <div class="row3 top10">
-            <div class="field">
-              <label for="p">Protein (g)</label>
-              <input id="p" type="number" min="0" step="0.1" />
-            </div>
-            <div class="field">
-              <label for="c">Carbs (g)</label>
-              <input id="c" type="number" min="0" step="0.1" />
-            </div>
-            <div class="field">
-              <label for="f">Fett (g)</label>
-              <input id="f" type="number" min="0" step="0.1" />
-            </div>
-          </div>
-
-          <button id="add" class="btn top12">Hinzufügen</button>
-        </div>
-
-      
-       <!-- SCAN -->
-        <div id="viewScan" class="view hidden">
-       <!-- Kamera oben -->
-          <div class="scanCam">
-            <div id="scannerWrap" class="scanner scanScanner hidden">
-              <video id="scanVideo" playsinline></video>
-            </div>
-        <!-- optionaler Hinweis, wenn Kamera noch aus -->
-            <div id="scanCamHint" class="scanHint">
+</div>
+<div class="row3 top10">
+<div class="field">
+<label for="p">Protein (g)</label>
+<input id="p" min="0" step="0.1" type="number"/>
+</div>
+<div class="field">
+<label for="c">Carbs (g)</label>
+<input id="c" min="0" step="0.1" type="number"/>
+</div>
+<div class="field">
+<label for="f">Fett (g)</label>
+<input id="f" min="0" step="0.1" type="number"/>
+</div>
+</div>
+<button class="btn top12" id="add">Hinzufügen</button>
+</div>
+<!-- SCAN -->
+<div class="view hidden" id="viewScan">
+<div class="scanCam">
+<div class="scanner scanScanner hidden" id="scannerWrap">
+<video id="scanVideo" playsinline=""></video>
+</div>
+<div class="scanHint" id="scanCamHint">
               Tippe auf <b>Scannen starten</b>, um die Kamera zu öffnen.
             </div>
-          </div>
-         <!-- Controls unten (Daumen-Zone) -->
-          <div class="scanControls">
-            <div class="scanTopRow">
-              <div class="muted small">Barcode scannen (Android Chrome).</div>
-              <div id="scanStatus" class="muted small"></div>
-            </div>
-            <div class="scanBtnRow">
-              <button id="scanBtn" class="btn scanBtnPrimary">📷 Scannen starten</button>
-              <button id="scanStop" class="btn btn-danger scanBtnStop">Stop</button>
-            </div>
-            <div class="muted small scanFoot">
+</div>
+<div class="scanControls">
+<div class="scanTopRow">
+<div class="muted small">Barcode scannen (Android Chrome).</div>
+<div class="muted small" id="scanStatus"></div>
+</div>
+<div class="scanBtnRow">
+<button class="btn scanBtnPrimary" id="scanBtn">📷 Scannen starten</button>
+<button class="btn btn-danger scanBtnStop" id="scanStop">Stop</button>
+</div>
+<div class="muted small scanFoot">
               Tipp: Halte die Packung ruhig, Barcode mittig ins Bild.
             </div>
-          </div>
-        </div>
- 
-
-        <!-- GOALS -->
-        <div id="viewGoals" class="view hidden">
-          <div class="muted small">
+</div>
+</div>
+<!-- GOALS -->
+<div class="view hidden" id="viewGoals">
+<div class="muted small">
             Tagesziele einstellen. Kalorien werden aus Makros live berechnet.
           </div>
-
-          <div class="row2 top10">
-            <div class="field">
-              <label for="goalKcal">Kalorien (kalkuliert)</label>
-              <input id="goalKcal" type="number" readonly tabindex="-1" class="readonly" />
-              <div class="muted small">Berechnet aus Protein, Carbs & Fett</div>
-            </div>
-            <button id="goalsResetBtn" class="btn btn-ghost">Reset</button>
-          </div>
-
-          <div class="row3 top10">
-            <div class="field">
-              <label for="goalP">Protein (g)</label>
-              <input id="goalP" type="number" min="0" step="1" />
-            </div>
-            <div class="field">
-              <label for="goalC">Carbs (g)</label>
-              <input id="goalC" type="number" min="0" step="1" />
-            </div>
-            <div class="field">
-              <label for="goalF">Fett (g)</label>
-              <input id="goalF" type="number" min="0" step="1" />
-            </div>
-          </div>
-
-          <div class="muted small top10">
+<div class="row2 top10">
+<div class="field">
+<label for="goalKcal">Kalorien (kalkuliert)</label>
+<input class="readonly" id="goalKcal" readonly="" tabindex="-1" type="number"/>
+<div class="muted small">Berechnet aus Protein, Carbs &amp; Fett</div>
+</div>
+<button class="btn btn-ghost" id="goalsResetBtn">Reset</button>
+</div>
+<div class="row3 top10">
+<div class="field">
+<label for="goalP">Protein (g)</label>
+<input id="goalP" min="0" step="1" type="number"/>
+</div>
+<div class="field">
+<label for="goalC">Carbs (g)</label>
+<input id="goalC" min="0" step="1" type="number"/>
+</div>
+<div class="field">
+<label for="goalF">Fett (g)</label>
+<input id="goalF" min="0" step="1" type="number"/>
+</div>
+</div>
+<div class="muted small top10">
             Gesamt aus Makros: <b><span id="goalsKcalFromMacros">0</span> kcal</b>
-          </div>
-
-          <button id="goalsSaveBtn" class="btn top12">Ziele speichern</button>
-        </div>
-
-        <!-- CUT SETTINGS -->
-        <div id="viewCut" class="view hidden">
-          <div class="muted small" id="cutModalTitle">Cut-Countdown Einstellungen</div>
-
-          <div class="field top10">
-            <label for="cutMaint">Maintenance (kcal)</label>
-            <input id="cutMaint" type="number" min="0" step="10" />
-          </div>
-
-          <div class="field top10">
-            <label for="cutBudgetStart" id="cutBudgetLabel">Defizit-Budget Start (kcal)</label>
-            <input id="cutBudgetStart" type="number" min="0" step="100" />
-          </div>
-
-          <div class="row2 top10">
-            <button id="cutSaveBtn" class="btn">Speichern / Reset</button>
-            <button id="cutResetBtn" class="btn btn-danger">Reset</button>
-          </div>
-        </div>
-
-        <!-- TEMPLATES -->
-        <div id="viewTemplates" class="view hidden">
-          <div class="muted small">Template Manager (pro 100g)</div>
-
-          <div class="row2 top10">
-            <select id="tplPick"></select>
-            <button id="tplApplyToCreateBtn" class="btn btn-ghost">In "Neu" übernehmen</button>
-          </div>
-
-          <div class="field top10">
-            <label for="tplEditName">Template-Name</label>
-            <input id="tplEditName" type="text" placeholder="z.B. Reis + Chicken" />
-          </div>
-
-          <div class="field top10">
-            <label for="tplEditBaseG">Basisgramm (empf. 100)</label>
-            <input id="tplEditBaseG" type="number" min="1" step="1" />
-          </div>
-
-          <div class="row3 top10">
-            <div class="field">
-              <label for="tplEditP">Protein / 100g</label>
-              <input id="tplEditP" type="number" min="0" step="0.1" />
-            </div>
-            <div class="field">
-              <label for="tplEditC">Carbs / 100g</label>
-              <input id="tplEditC" type="number" min="0" step="0.1" />
-            </div>
-            <div class="field">
-              <label for="tplEditF">Fett / 100g</label>
-              <input id="tplEditF" type="number" min="0" step="0.1" />
-            </div>
-          </div>
-
-          <div class="row2 top10">
-            <button id="tplUseCurrentBtn" class="btn btn-ghost">Aktuellen "Neu"-Eintrag → 100g</button>
-            <button id="tplSaveBtn2" class="btn">Speichern</button>
-          </div>
-
-          <button id="tplDeleteBtn2" class="btn btn-danger top10">Template löschen</button>
-        </div>
-
-      </div><!-- /modal-body -->
-    </div><!-- /modal-sheet -->
-  </section><!-- /modal -->
-
-  <!-- Install FAB -->
-  <button id="installFab" class="installFab hidden" aria-label="App installieren">Installieren</button>
-
-  <script>
-  (function(){
-    const STORAGE_KEY = "ricos_mealtracker_main_v4";
- 
-    const $ = (id)=>document.getElementById(id);
- 
-    function readMode(){
-      try{
-        const s = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
-        return (s.settings && s.settings.mode) ? s.settings.mode : "cut";
-      }catch(_){ return "cut"; }
-    }
- 
-    function setLabel(mode){
-      const label = $("modeLabel");
-      if(label) label.textContent = "Aktiv: " + (mode === "bulk" ? "Bulk" : "Cut");
-    }
- 
-    function syncFromMode(mode){
-      const t = $("modeToggle");
-      const sel = $("modeSelect");
-      if(t) t.checked = (mode === "bulk");
-      if(sel) sel.value = mode;
-      setLabel(mode);
-    }
- 
-    // initial
-    document.addEventListener("DOMContentLoaded", ()=>{
-      syncFromMode(readMode());
- 
-      // Wenn Toggle geändert wird → Select setzen + change dispatchen (für app.js, falls sie auf modeSelect hört)
-      const t = $("modeToggle");
-      const sel = $("modeSelect");
- 
-      if(t){
-        t.addEventListener("change", ()=>{
-          const mode = t.checked ? "bulk" : "cut";
-          if(sel){
-            sel.value = mode;
-            sel.dispatchEvent(new Event("change", { bubbles:true }));
-          }
-          setLabel(mode);
-        });
-      }
- 
-      // Wenn Select geändert wird → Toggle setzen + change dispatchen (für app.js, falls sie auf modeToggle hört)
-      if(sel){
-        sel.addEventListener("change", ()=>{
-          const mode = sel.value === "bulk" ? "bulk" : "cut";
-          if(t){
-            t.checked = (mode === "bulk");
-            t.dispatchEvent(new Event("change", { bubbles:true }));
-          }
-          setLabel(mode);
-        });
-      }
- 
-      // Wenn Drawer geöffnet wird (class hidden entfernt), label/toggle nochmal aus Storage ziehen
-      const drawer = $("drawer");
-      if(drawer){
-        const obs = new MutationObserver(()=>{
-          if(!drawer.classList.contains("hidden")){
-            syncFromMode(readMode());
-          }
-        });
-        obs.observe(drawer, { attributes:true, attributeFilter:["class"] });
-      }
-    });
-  })();
-</script>
- 
-
-  <!-- JS -->
-  <script src="app.js?v=20260122-6"></script>
-
-  <!-- SW register -->
-  <script>
+</div>
+<button class="btn top12" id="goalsSaveBtn">Ziele speichern</button>
+</div>
+<!-- CUT SETTINGS -->
+<div class="view hidden" id="viewCut">
+<div class="muted small" id="cutModalTitle">Cut-Countdown Einstellungen</div>
+<div class="field top10">
+<label for="cutMaint">Maintenance (kcal)</label>
+<input id="cutMaint" min="0" step="10" type="number"/>
+</div>
+<div class="field top10">
+<label id="cutBudgetLabel" for="cutBudgetStart">Defizit-Budget Start (kg)</label>
+<input id="cutBudgetStart" min="0" step="0.1" type="number"/>
+</div>
+<div class="row2 top10">
+<button class="btn" id="cutSaveBtn">Speichern / Reset</button>
+<button class="btn btn-danger" id="cutResetBtn">Reset</button>
+</div>
+</div>
+<!-- TEMPLATES -->
+<div class="view hidden" id="viewTemplates">
+<div class="muted small">Template Manager (pro 100g)</div>
+<div class="row2 top10">
+<select id="tplPick"></select>
+<button class="btn btn-ghost" id="tplApplyToCreateBtn">In "Neu" übernehmen</button>
+</div>
+<div class="field top10">
+<label for="tplEditName">Template-Name</label>
+<input id="tplEditName" placeholder="z.B. Reis + Chicken" type="text"/>
+</div>
+<div class="field top10">
+<label for="tplEditBaseG">Basisgramm (empf. 100)</label>
+<input id="tplEditBaseG" min="1" step="1" type="number"/>
+</div>
+<div class="row3 top10">
+<div class="field">
+<label for="tplEditP">Protein / 100g</label>
+<input id="tplEditP" min="0" step="0.1" type="number"/>
+</div>
+<div class="field">
+<label for="tplEditC">Carbs / 100g</label>
+<input id="tplEditC" min="0" step="0.1" type="number"/>
+</div>
+<div class="field">
+<label for="tplEditF">Fett / 100g</label>
+<input id="tplEditF" min="0" step="0.1" type="number"/>
+</div>
+</div>
+<div class="row2 top10">
+<button class="btn btn-ghost" id="tplUseCurrentBtn">Aktuellen "Neu"-Eintrag → 100g</button>
+<button class="btn" id="tplSaveBtn2">Speichern</button>
+</div>
+<button class="btn btn-danger top10" id="tplDeleteBtn2">Template löschen</button>
+</div>
+</div>
+</div>
+</section>
+<!-- Install FAB -->
+<button aria-label="App installieren" class="installFab hidden" id="installFab">Installieren</button>
+<!-- JS -->
+<script src="app.js?v=20260122-kg-1"></script>
+<!-- SW register -->
+<script>
     if ("serviceWorker" in navigator) {
       window.addEventListener("load", () => {
         navigator.serviceWorker.register("/rico-mealtracker-main/sw.js").catch(console.error);
       });
     }
   </script>
-
 </body>
 </html>
-
-
-
-
-
-
-
-
