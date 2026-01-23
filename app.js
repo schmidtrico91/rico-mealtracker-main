@@ -1,47 +1,49 @@
 /* =========================================================
-   Rico’s Mealtracker – app.js
-   Stable baseline with Cut/Bulk (kg UX, kcal internal)
-   Compatible with current index.html
-========================================================= */
+   Rico’s Mealtracker – app.js (FINAL, STABLE)
+   ========================================================= */
 
-/* ---------------- constants ---------------- */
-const KCAL_PER_KG_FAT = 9000; // 1 kg Fett = 9000 kcal
-const STORAGE_KEY = "ricos_mealtracker_main_v7";
+/* -------------------- Constants -------------------- */
+const STORAGE_KEY = "ricos_mealtracker_v1";
 
-/* ---------------- utils ---------------- */
+/* -------------------- Helpers -------------------- */
 const $ = (id) => document.getElementById(id);
-const todayISO = () => new Date().toISOString().slice(0, 10);
-const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2);
-const clamp01 = (x) => Math.max(0, Math.min(1, x));
+const clamp01 = (v) => Math.max(0, Math.min(1, v));
+const round1 = (v) => Math.round(v * 10) / 10;
 
+const todayISO = () => new Date().toISOString().slice(0, 10);
+const dayKey = (d) => `day_${d}`;
+const uid = () => crypto.randomUUID();
+
+/* -------------------- State -------------------- */
 function loadState() {
-  return JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
+  try {
+    return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {};
+  } catch {
+    return {};
+  }
 }
+
 function saveState(s) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(s));
 }
 
 function initDefaults(s) {
-  if (!s.goals) s.goals = { kcal: 2400, p: 150, c: 300, f: 60 };
-  if (!s.cut)
-    s.cut = {
-      maintenance: 2400,
-      budgetStartKcal: 0,
-      budgetLeftKcal: 0,
-      committedDays: {},
-    };
-  if (!s.settings) s.settings = { mode: "cut" };
-  if (!s.lastDate) s.lastDate = todayISO();
-  if (!s.recents) s.recents = [];
+  s.settings ??= { mode: "cut" };
+  s.goals ??= { kcal: 2400, p: 150, c: 300, f: 60 };
+  s.cut ??= { maintenance: 0, budgetStart: 0, budgetLeft: 0, committedDays: {} };
+  s.templates ??= [];
+  s.recents ??= [];
+  s.lastDate ??= todayISO();
   return s;
 }
 
-function dayKey(d) {
-  return `day_${d}`;
+/* -------------------- Calculations -------------------- */
+function calcKcalFromMacros(p, c, f) {
+  return p * 4 + c * 4 + f * 9;
 }
 
-function sumEntries(entries) {
-  return (entries || []).reduce(
+function sumEntries(list) {
+  return list.reduce(
     (a, e) => {
       a.kcal += e.kcal || 0;
       a.p += e.p || 0;
@@ -53,212 +55,206 @@ function sumEntries(entries) {
   );
 }
 
-/* ---------------- modal / drawer ---------------- */
-function openModal(which) {
-  $("overlay")?.classList.remove("hidden");
-  $("modal")?.classList.remove("hidden");
-  document.querySelectorAll(".view").forEach((v) => v.classList.add("hidden"));
-  const id = "view" + which[0].toUpperCase() + which.slice(1);
-  $(id)?.classList.remove("hidden");
+/* -------------------- Modal / Drawer -------------------- */
+function openModal(view) {
+  const modal = $("modal");
+  const overlay = $("overlay");
+  if (!modal || !overlay) return;
+
+  modal.classList.remove("hidden");
+  overlay.classList.remove("hidden");
+  modal.querySelectorAll(".view").forEach(v => v.classList.add("hidden"));
+
+  const v = $("view" + view.charAt(0).toUpperCase() + view.slice(1));
+  if (v) v.classList.remove("hidden");
 }
+
 function closeModal() {
   $("modal")?.classList.add("hidden");
   $("overlay")?.classList.add("hidden");
 }
+
 function openDrawer() {
+  const s = initDefaults(loadState());
   $("drawer")?.classList.remove("hidden");
   $("overlay")?.classList.remove("hidden");
-
-  const s = initDefaults(loadState());
-  const toggle = $("modeToggle");
-  if (toggle) toggle.checked = s.settings.mode === "bulk";
-  if ($("modeLabel"))
-    $("modeLabel").textContent =
-      s.settings.mode === "bulk" ? "Aktiv: Bulk" : "Aktiv: Cut";
+  if ($("modeToggle")) $("modeToggle").checked = s.settings.mode === "bulk";
 }
+
 function closeDrawer() {
   $("drawer")?.classList.add("hidden");
   $("overlay")?.classList.add("hidden");
 }
 
-/* ---------------- render ---------------- */
+/* -------------------- Rendering -------------------- */
 function render() {
   const state = initDefaults(loadState());
   const date = state.lastDate;
 
+  if ($("date")) $("date").value = date;
+
   const entries = state[dayKey(date)] || [];
   const sums = sumEntries(entries);
 
-  // goals
-  $("gKcal").textContent = state.goals.kcal;
-  $("gP").textContent = state.goals.p;
-  $("gC").textContent = state.goals.c;
-  $("gF").textContent = state.goals.f;
+  setText("sumKcal", Math.round(sums.kcal));
+  setText("sumP", Math.round(sums.p));
+  setText("sumC", Math.round(sums.c));
+  setText("sumF", Math.round(sums.f));
 
-  // sums
-  $("sumKcal").textContent = Math.round(sums.kcal);
-  $("sumP").textContent = Math.round(sums.p);
-  $("sumC").textContent = Math.round(sums.c);
-  $("sumF").textContent = Math.round(sums.f);
+  setText("gKcal", state.goals.kcal);
+  setText("gP", state.goals.p);
+  setText("gC", state.goals.c);
+  setText("gF", state.goals.f);
 
-  // kcal bar
-  const goal = Math.max(0, state.goals.kcal);
-  const pct = goal > 0 ? clamp01(sums.kcal / goal) : 0;
+  const goal = Math.max(1, state.goals.kcal);
+  const pct = clamp01(sums.kcal / goal);
+
   const bar = $("kcalBar");
   if (bar) {
-    bar.style.width = `${Math.round(pct * 100)}%`;
-    bar.style.background =
-      "linear-gradient(90deg, #7c3aed, #22d3ee)";
+    bar.style.width = `${pct * 100}%`;
+    bar.style.background = "linear-gradient(90deg, var(--accent), var(--accent2))";
+
+    if (state.settings.mode === "bulk") {
+      const maintPct = clamp01((state.cut.maintenance || 0) / goal);
+      if (pct > maintPct) {
+        const split = (maintPct / pct) * 100;
+        bar.style.background = `
+          linear-gradient(90deg,
+            #7c3aed 0%,
+            #7c3aed ${split}%,
+            #22c55e ${split}%,
+            #22c55e ${split + (100 - split) * 0.8}%,
+            #f59e0b 100%)
+        `;
+      }
+    }
   }
 
-  // maintenance marker (bulk only)
   const marker = $("maintMarker");
-  if (marker && state.settings.mode === "bulk" && goal > 0) {
-    const mPct = clamp01(state.cut.maintenance / goal);
-    marker.style.left = `${Math.round(mPct * 100)}%`;
-    marker.style.display = "block";
-  } else if (marker) {
-    marker.style.display = "none";
+  if (marker) {
+    if (state.settings.mode === "bulk") {
+      marker.style.display = "block";
+      marker.style.left = `${(state.cut.maintenance / goal) * 100}%`;
+    } else {
+      marker.style.display = "none";
+    }
   }
 
-  // cut/bulk text
+  setText("budgetLeft", Math.round(state.cut.budgetLeft || 0));
+
+  const cutPct =
+    state.cut.budgetStart > 0
+      ? clamp01(1 - state.cut.budgetLeft / state.cut.budgetStart)
+      : 0;
+
+  if ($("cutBar")) $("cutBar").style.width = `${cutPct * 100}%`;
+  setText("cutPercent", Math.round(cutPct * 100));
+
   const label = document.querySelector(".cut-label");
-  if (label)
-    label.textContent =
-      state.settings.mode === "bulk" ? "BULK COUNTER" : "CUT COUNTDOWN";
+  if (label) label.textContent = state.settings.mode === "bulk" ? "BULK COUNTER" : "CUT COUNTDOWN";
 
-  const commitBtn = $("commitDay");
-  if (commitBtn)
-    commitBtn.textContent =
+  if ($("commitDay"))
+    $("commitDay").textContent =
+      state.settings.mode === "bulk" ? "Überschuss verbuchen" : "Defizit verbuchen";
+
+  if ($("budgetHint")) {
+    $("budgetHint").textContent =
       state.settings.mode === "bulk"
-        ? "Überschuss verbuchen"
-        : "Defizit verbuchen";
-
-  // budget (kg display)
-  const kgLeft = (state.cut.budgetLeftKcal / KCAL_PER_KG_FAT).toFixed(1);
-  $("budgetLeft").textContent = kgLeft;
-
-  $("statusLine").textContent = `${entries.length} Einträge · ${Math.round(
-    sums.kcal
-  )} kcal`;
-
-  $("appVersion").textContent = "Version: 2026-01-23";
+        ? "Bulk: verbucht gegessen − Maintenance"
+        : "Cut: verbucht Maintenance − gegessen";
+  }
 
   renderDayList(state, date);
 }
 
-/* ---------------- day list ---------------- */
+/* -------------------- UI helpers -------------------- */
+function setText(id, val) {
+  if ($(id)) $(id).textContent = val;
+}
+
+/* -------------------- Day list -------------------- */
 function renderDayList(state, date) {
   const list = $("dayList");
-  const empty = $("emptyHint");
+  if (!list) return;
+
+  list.innerHTML = "";
   const entries = state[dayKey(date)] || [];
 
   if (!entries.length) {
-    list.innerHTML = "";
-    empty.classList.remove("hidden");
+    $("emptyHint")?.classList.remove("hidden");
     return;
   }
-  empty.classList.add("hidden");
+  $("emptyHint")?.classList.add("hidden");
 
-  list.innerHTML = entries
-    .map(
-      (e) => `
-    <div class="item">
-      <div class="item-main">
-        <div class="item-name">${e.name}</div>
-        <div class="muted small">${e.grams} g · ${Math.round(
-        e.kcal
-      )} kcal</div>
-      </div>
-    </div>`
-    )
-    .join("");
+  entries.forEach(e => {
+    const div = document.createElement("div");
+    div.className = "list-item";
+    div.textContent = `${e.name} – ${e.kcal} kcal`;
+    list.appendChild(div);
+  });
 }
 
-/* ---------------- wire ---------------- */
+/* -------------------- Actions -------------------- */
+function commitDay() {
+  const s = initDefaults(loadState());
+  const date = s.lastDate;
+  if (s.cut.committedDays[date]) return;
+
+  const sums = sumEntries(s[dayKey(date)] || []);
+  let delta = 0;
+
+  if (s.settings.mode === "cut") {
+    delta = Math.max(0, s.cut.maintenance - sums.kcal);
+  } else {
+    delta = Math.max(0, sums.kcal - s.cut.maintenance);
+  }
+
+  s.cut.budgetLeft = Math.max(0, s.cut.budgetLeft - delta);
+  s.cut.committedDays[date] = true;
+  saveState(s);
+  render();
+}
+
+/* -------------------- Wire -------------------- */
 function wire() {
-  // bottom nav
-  document.querySelectorAll(".navbtn").forEach((b) =>
+  document.querySelectorAll(".navbtn").forEach(b =>
     b.addEventListener("click", () => openModal(b.dataset.modal))
   );
 
-  $("modalClose")?.addEventListener("click", closeModal);
   $("burger")?.addEventListener("click", openDrawer);
   $("drawerClose")?.addEventListener("click", closeDrawer);
-
+  $("modalClose")?.addEventListener("click", closeModal);
   $("overlay")?.addEventListener("click", () => {
     closeModal();
     closeDrawer();
   });
 
-  // date
-  $("date")?.addEventListener("change", (e) => {
-    const s = initDefaults(loadState());
-    s.lastDate = e.target.value;
-    saveState(s);
-    render();
+  $("commitDay")?.addEventListener("click", commitDay);
+  $("drawerCommit")?.addEventListener("click", () => {
+    closeDrawer();
+    commitDay();
   });
 
-  // add entry
-  $("add")?.addEventListener("click", () => {
-    const s = initDefaults(loadState());
-    const date = s.lastDate;
-    if (!s[dayKey(date)]) s[dayKey(date)] = [];
-
-    const p = +$("p").value || 0;
-    const c = +$("c").value || 0;
-    const f = +$("f").value || 0;
-    const kcal = p * 4 + c * 4 + f * 9;
-
-    s[dayKey(date)].push({
-      id: uid(),
-      name: $("name").value || "Eintrag",
-      grams: +$("grams").value || 0,
-      p,
-      c,
-      f,
-      kcal,
-    });
-
-    saveState(s);
-    closeModal();
-    render();
-  });
-
-  // mode toggle
-  $("modeToggle")?.addEventListener("change", (e) => {
+  $("modeToggle")?.addEventListener("change", e => {
     const s = initDefaults(loadState());
     s.settings.mode = e.target.checked ? "bulk" : "cut";
     saveState(s);
     render();
   });
 
-  // commit day
-  $("commitDay")?.addEventListener("click", () => {
+  $("date")?.addEventListener("change", e => {
     const s = initDefaults(loadState());
-    const date = s.lastDate;
-    if (s.cut.committedDays[date]) return alert("Heute bereits verbucht.");
-
-    const entries = s[dayKey(date)] || [];
-    const sums = sumEntries(entries);
-
-    let delta =
-      s.settings.mode === "bulk"
-        ? Math.max(0, sums.kcal - s.cut.maintenance)
-        : Math.max(0, s.cut.maintenance - sums.kcal);
-
-    s.cut.budgetLeftKcal = Math.max(0, s.cut.budgetLeftKcal - delta);
-    s.cut.committedDays[date] = true;
+    s.lastDate = e.target.value;
     saveState(s);
     render();
   });
+
+  render();
 }
 
-/* ---------------- boot ---------------- */
+/* -------------------- Init -------------------- */
 document.addEventListener("DOMContentLoaded", () => {
-  const s = initDefaults(loadState());
-  saveState(s);
-  if ($("date")) $("date").value = s.lastDate;
+  initDefaults(loadState());
   wire();
   render();
 });
