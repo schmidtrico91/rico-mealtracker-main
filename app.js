@@ -632,10 +632,22 @@ function renderDayList(state,date){
       $("name").value=entry.name||"";
       $("grams").value=entry.grams||0;
 
-      clearPer100Base();
-      $("p").value=entry.p??0;
-      $("c").value=entry.c??0;
-      $("f").value=entry.f??0;
+      // per100-Basis aus dem gespeicherten Eintrag berechnen,
+// damit Gramm-Skalierung im Edit wieder proportional funktioniert.
+const g = (Number.isFinite(+entry.grams) && +entry.grams > 0) ? +entry.grams : 100;
+ 
+const p = Number.isFinite(+entry.p) ? +entry.p : 0;
+const c = Number.isFinite(+entry.c) ? +entry.c : 0;
+const f = Number.isFinite(+entry.f) ? +entry.f : 0;
+ 
+const p100 = p * 100 / g;
+const c100 = c * 100 / g;
+const f100 = f * 100 / g;
+ 
+// Setze per100 Base + skaliere auf aktuelle Gramm (bleibt dabei identisch)
+setPer100Base(p100, c100, f100, null);
+applyPer100ScalingIfPresent();
+ 
 
       $("manualKcal").checked=!!entry.manualKcal;
       $("kcal").value=entry.kcal ?? Math.round(calcKcalFromMacros(entry.p||0,entry.c||0,entry.f||0));
@@ -1216,6 +1228,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
   wireInstallFab();
   render();
 });
+
 
 
 
