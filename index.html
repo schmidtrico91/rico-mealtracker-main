@@ -42,37 +42,27 @@
 <div class="drawer-section">
   <div class="drawer-title">Cut / Bulk</div>
  
-  <label class="drawer-item drawer-toggle">
-    <span>Modus</span>
-    <select id="modeSelect">
-      <option value="cut">Cut (Defizit)</option>
-      <option value="bulk">Bulk (Überschuss)</option>
-    </select>
-  </label>
+  <!-- Toggle -->
+  <div class="drawer-item drawer-toggle" style="display:flex;align-items:center;justify-content:space-between;">
+    <span style="font-weight:800;">Bulk-Modus</span>
+ 
+    <label class="switch" aria-label="Bulk-Modus umschalten">
+      <input type="checkbox" id="modeToggle">
+      <span class="slider"></span>
+    </label>
+  </div>
+ 
+  <div class="drawer-note" id="modeLabel">Aktiv: Cut</div>
  
   <button class="drawer-item" id="openCut">Budget / Maintenance</button>
   <button class="drawer-item" id="drawerCommit">Heute verbuchen</button>
   <button class="drawer-item danger" id="resetCut">Reset</button>
  
   <div class="drawer-note">
-    Cut: verbucht <b>Maintenance − gegessen</b><br>
-    Bulk: verbucht <b>gegessen − Maintenance</b>
+    Cut: verbucht <b>Maintenance − gegessen</b> (min. 0)<br>
+    Bulk: verbucht <b>gegessen − Maintenance</b> (min. 0)
   </div>
-</div>
- 
- 
-    <!-- Toggle -->
- 
- 
-    <button class="drawer-item" id="openCut">Budget / Maintenance</button>
-    <button class="drawer-item" id="drawerCommit">Heute verbuchen</button>
-    <button class="drawer-item danger" id="resetCut">Reset</button>
- 
-    <div class="drawer-note">
-      Cut: verbucht <b>Maintenance − gegessen</b><br>
-      Bulk: verbucht <b>gegessen − Maintenance</b>
-    </div>
-  </div>
+</div>  
  
   <!-- Templates -->
   <div class="drawer-section">
@@ -447,6 +437,7 @@
 
 </body>
 </html>
+
 
 
 
