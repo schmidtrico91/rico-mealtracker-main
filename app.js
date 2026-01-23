@@ -188,6 +188,7 @@ function updateGoalsKcalFromMacros(){
   const f = parseFloat(($("goalF")?.value || "0").replace(",", ".")) || 0;
   const kcal = Math.round(calcKcalFromMacros(p, c, f));
   if ($("goalsKcalFromMacros")) $("goalsKcalFromMacros").textContent = String(kcal);
+  if($("goalKcal")) $("goalKcal").value = String(kcal);
 }
  
 function prefillCutModal(){
@@ -1158,6 +1159,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
   wireInstallFab();
   render();
 });
+
 
 
 
