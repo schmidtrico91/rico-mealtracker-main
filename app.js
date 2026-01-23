@@ -697,10 +697,8 @@ if (kcalBarEl) {
     /* Bulk-Überschuss */
     #22c55e ${split}%,
     #22c55e ${split + (100 - split) * 0.8}%,
-    #f59e0b 100%)
-`;
- 
-      `;
+    #f59e0b 100%)`
+;
     }
   }
 }
