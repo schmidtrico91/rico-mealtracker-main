@@ -701,7 +701,7 @@ if (kcalBarEl) {
     }
   }
 }
-}
+
 
  
   // --- mode + maintenance (define ONCE) ---
@@ -1210,6 +1210,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
   wireInstallFab();
   render();
 });
+
 
 
 
