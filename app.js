@@ -634,52 +634,62 @@ function renderDayList(state,date){
 }
 
 function render(){
-  const state=initDefaults(loadState());
-
-  if($("date")) $("date").value = state.lastDate || todayISO();
-  const date=ensureDateFilled();
-
-  // goals
+  const state = initDefaults(loadState());
+ 
+  if ($("date")) $("date").value = state.lastDate || todayISO();
+  const date = ensureDateFilled();
+ 
+  // --- goals ---
   setText("gKcal", state.goals.kcal);
   setText("gP", state.goals.p);
   setText("gC", state.goals.c);
   setText("gF", state.goals.f);
-
-  // sums
-  const entries=state[dayKey(date)]||[];
-  const sums=sumEntries(entries);
+ 
+  // --- sums ---
+  const entries = state[dayKey(date)] || [];
+  const sums = sumEntries(entries);
   setText("sumKcal", Math.round(sums.kcal));
   setText("sumP", Math.round(sums.p));
   setText("sumC", Math.round(sums.c));
   setText("sumF", Math.round(sums.f));
-
-  // kcal bar
-  const pct = state.goals.kcal>0 ? clamp01(sums.kcal/state.goals.kcal) : 0;
-  if($("kcalBar")) $("kcalBar").style.width = `${Math.round(pct*100)}%`;
-
-  // maintenance marker on kcal bar
+ 
+  // --- kcal progress bar ---
+  const goalKcal = Math.max(0, Math.round(state.goals.kcal || 0));
+  const pct = goalKcal > 0 ? clamp01(sums.kcal / goalKcal) : 0;
+  if ($("kcalBar")) $("kcalBar").style.width = `${Math.round(pct * 100)}%`;
+ 
+  // --- mode + maintenance (define ONCE) ---
+  const mode = state.settings?.mode || "cut"; // "cut" | "bulk"
   const maint = Math.max(0, Math.round(state.cut.maintenance || 0));
-  const goal = Math.max(0, Math.round(state.goals.kcal || 0));
-  const markerPct = goal > 0 ? clamp01(maint / goal) : 0;
-  if ($("maintMarker")) $("maintMarker").style.left = `${Math.round(markerPct * 100)}%`;
  
-
-  // cut
-  setText("budgetLeft", Math.max(0, Math.round(state.cut.budgetLeft||0)));
-  const cutPct = state.cut.budgetStart>0 ? clamp01(1-(state.cut.budgetLeft/state.cut.budgetStart)) : 0;
-  if($("cutBar")) $("cutBar").style.width = `${Math.round(cutPct*100)}%`;
-  setText("cutPercent", Math.round(cutPct*100));
-
-  const mode = state.settings?.mode || "cut";
+  // --- maintenance marker (ONLY in bulk mode) ---
+  const marker = $("maintMarker");
+  if (marker) {
+    if (mode === "bulk" && goalKcal > 0) {
+      const markerPct = clamp01(maint / goalKcal);
+      marker.style.left = `${Math.round(markerPct * 100)}%`;
+      marker.style.display = "block";
+    } else {
+      marker.style.display = "none";
+    }
+  }
  
-  // optional: UI Texte anpassen (IDs bleiben gleich)
+  // --- cut/bulk progress ---
+  setText("budgetLeft", Math.max(0, Math.round(state.cut.budgetLeft || 0)));
+  const cutStart = Math.max(0, Math.round(state.cut.budgetStart || 0));
+  const cutLeft  = Math.max(0, Math.round(state.cut.budgetLeft || 0));
+  const cutPct = cutStart > 0 ? clamp01(1 - (cutLeft / cutStart)) : 0;
+ 
+  if ($("cutBar")) $("cutBar").style.width = `${Math.round(cutPct * 100)}%`;
+  setText("cutPercent", Math.round(cutPct * 100));
+ 
+  // --- UI Texte anpassen ---
   const cutLabelEl = document.querySelector(".cut-label");
   if (cutLabelEl) cutLabelEl.textContent = (mode === "bulk") ? "BULK COUNTER" : "CUT COUNTDOWN";
  
   const commitBtn = $("commitDay");
   if (commitBtn) commitBtn.textContent = (mode === "bulk") ? "Überschuss verbuchen" : "Defizit verbuchen";
  
-  // Hinweistext
   if ($("budgetHint")) {
     $("budgetHint").textContent =
       (mode === "bulk")
@@ -687,15 +697,15 @@ function render(){
         : `Cut-Modus: verbucht max(0, Maintenance ${maint} − gegessen)`;
   }
  
-
-  // status line
-  if($("statusLine")) $("statusLine").textContent = `${entries.length} Einträge · ${Math.round(sums.kcal)} kcal`;
-
-  // version display
-  if($("appVersion")) $("appVersion").textContent = "Version: 20260122-3";
-
-  renderDayList(state,date);
+  // --- status line ---
+  if ($("statusLine")) $("statusLine").textContent = `${entries.length} Einträge · ${Math.round(sums.kcal)} kcal`;
+ 
+  // --- version display ---
+  if ($("appVersion")) $("appVersion").textContent = "Version: 20260122-3";
+ 
+  renderDayList(state, date);
 }
+ 
 
 // ---------------- wire ----------------
 function wire(){
@@ -1132,6 +1142,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
   wireInstallFab();
   render();
 });
+
 
 
 
