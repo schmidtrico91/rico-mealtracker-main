@@ -690,11 +690,16 @@ if (kcalBarEl) {
       const split = Math.round((markerPct / pct) * 100);
  
       kcalBarEl.style.background = `
-        linear-gradient(90deg,
-          var(--accent) 0%,
-          var(--accent2) ${split}%,
-          #22c55e ${split}%,
-          #16a34a 100%)
+      linear-gradient(90deg,
+      var(--accent) 0%,
+      var(--accent2) ${split}%,   
+   
+    /* Bulk-Überschuss */
+    #22c55e ${split}%,
+    #22c55e ${split + (100 - split) * 0.8}%,
+    #f59e0b 100%)
+`;
+ 
       `;
     }
   }
@@ -1206,6 +1211,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
   wireInstallFab();
   render();
 });
+
 
 
 
