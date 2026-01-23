@@ -141,6 +141,9 @@ function openDrawer(){
   overlay.classList.remove("hidden");
   drawer.classList.remove("hidden");
   drawer.setAttribute("aria-hidden","false");
+  const s = initDefaults(loadState());
+  if ($("modeSelect")) $("modeSelect").value = s.settings?.mode || "cut";
+ 
 }
 function closeDrawer(){
   const overlay=$("overlay"), drawer=$("drawer"), modal=$("modal");
@@ -654,11 +657,36 @@ function render(){
   const pct = state.goals.kcal>0 ? clamp01(sums.kcal/state.goals.kcal) : 0;
   if($("kcalBar")) $("kcalBar").style.width = `${Math.round(pct*100)}%`;
 
+  // maintenance marker on kcal bar
+  const maint = Math.max(0, Math.round(state.cut.maintenance || 0));
+  const goal = Math.max(0, Math.round(state.goals.kcal || 0));
+  const markerPct = goal > 0 ? clamp01(maint / goal) : 0;
+  if ($("maintMarker")) $("maintMarker").style.left = `${Math.round(markerPct * 100)}%`;
+ 
+
   // cut
   setText("budgetLeft", Math.max(0, Math.round(state.cut.budgetLeft||0)));
   const cutPct = state.cut.budgetStart>0 ? clamp01(1-(state.cut.budgetLeft/state.cut.budgetStart)) : 0;
   if($("cutBar")) $("cutBar").style.width = `${Math.round(cutPct*100)}%`;
   setText("cutPercent", Math.round(cutPct*100));
+
+  const mode = state.settings?.mode || "cut";
+ 
+  // optional: UI Texte anpassen (IDs bleiben gleich)
+  const cutLabelEl = document.querySelector(".cut-label");
+  if (cutLabelEl) cutLabelEl.textContent = (mode === "bulk") ? "BULK COUNTER" : "CUT COUNTDOWN";
+ 
+  const commitBtn = $("commitDay");
+  if (commitBtn) commitBtn.textContent = (mode === "bulk") ? "Überschuss verbuchen" : "Defizit verbuchen";
+ 
+  // Hinweistext
+  if ($("budgetHint")) {
+    $("budgetHint").textContent =
+      (mode === "bulk")
+        ? `Bulk-Modus: verbucht max(0, gegessen − Maintenance ${maint})`
+        : `Cut-Modus: verbucht max(0, Maintenance ${maint} − gegessen)`;
+  }
+ 
 
   // status line
   if($("statusLine")) $("statusLine").textContent = `${entries.length} Einträge · ${Math.round(sums.kcal)} kcal`;
@@ -889,6 +917,15 @@ function wire(){
   click("openCut", ()=>{ closeDrawer(); openModal("cut"); });
   click("openTemplates", ()=>{ closeDrawer(); openModal("templates"); });
 
+  // Mode switch (Cut/Bulk)
+  $("modeSelect")?.addEventListener("change", (e)=>{
+    const s = initDefaults(loadState());
+    s.settings.mode = e.target.value === "bulk" ? "bulk" : "cut";
+    saveState(s);
+    render();
+  });
+ 
+
   // Drawer reset buttons
   click("resetGoals", ()=>{
     const s=initDefaults(loadState());
@@ -1095,6 +1132,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
   wireInstallFab();
   render();
 });
+
 
 
 
