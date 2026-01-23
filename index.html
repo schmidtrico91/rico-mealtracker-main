@@ -430,6 +430,78 @@
   <!-- Install FAB -->
   <button id="installFab" class="installFab hidden" aria-label="App installieren">Installieren</button>
 
+  <script>
+  (function(){
+    const STORAGE_KEY = "ricos_mealtracker_main_v4";
+ 
+    const $ = (id)=>document.getElementById(id);
+ 
+    function readMode(){
+      try{
+        const s = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
+        return (s.settings && s.settings.mode) ? s.settings.mode : "cut";
+      }catch(_){ return "cut"; }
+    }
+ 
+    function setLabel(mode){
+      const label = $("modeLabel");
+      if(label) label.textContent = "Aktiv: " + (mode === "bulk" ? "Bulk" : "Cut");
+    }
+ 
+    function syncFromMode(mode){
+      const t = $("modeToggle");
+      const sel = $("modeSelect");
+      if(t) t.checked = (mode === "bulk");
+      if(sel) sel.value = mode;
+      setLabel(mode);
+    }
+ 
+    // initial
+    document.addEventListener("DOMContentLoaded", ()=>{
+      syncFromMode(readMode());
+ 
+      // Wenn Toggle geändert wird → Select setzen + change dispatchen (für app.js, falls sie auf modeSelect hört)
+      const t = $("modeToggle");
+      const sel = $("modeSelect");
+ 
+      if(t){
+        t.addEventListener("change", ()=>{
+          const mode = t.checked ? "bulk" : "cut";
+          if(sel){
+            sel.value = mode;
+            sel.dispatchEvent(new Event("change", { bubbles:true }));
+          }
+          setLabel(mode);
+        });
+      }
+ 
+      // Wenn Select geändert wird → Toggle setzen + change dispatchen (für app.js, falls sie auf modeToggle hört)
+      if(sel){
+        sel.addEventListener("change", ()=>{
+          const mode = sel.value === "bulk" ? "bulk" : "cut";
+          if(t){
+            t.checked = (mode === "bulk");
+            t.dispatchEvent(new Event("change", { bubbles:true }));
+          }
+          setLabel(mode);
+        });
+      }
+ 
+      // Wenn Drawer geöffnet wird (class hidden entfernt), label/toggle nochmal aus Storage ziehen
+      const drawer = $("drawer");
+      if(drawer){
+        const obs = new MutationObserver(()=>{
+          if(!drawer.classList.contains("hidden")){
+            syncFromMode(readMode());
+          }
+        });
+        obs.observe(drawer, { attributes:true, attributeFilter:["class"] });
+      }
+    });
+  })();
+</script>
+ 
+
   <!-- JS -->
   <script src="app.js?v=20260122-6"></script>
 
@@ -444,6 +516,7 @@
 
 </body>
 </html>
+
 
 
 
