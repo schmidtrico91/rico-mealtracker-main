@@ -704,7 +704,7 @@ if (kcalBarEl) {
 }
  
   // --- mode + maintenance (define ONCE) ---
-  const mode = state.settings?.mode || "cut"; // "cut" | "bulk"
+  //const mode = state.settings?.mode || "cut"; // "cut" | "bulk"
 
     // ----------------------------
 // Cut / Bulk Modal Texte
@@ -1209,6 +1209,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
   wireInstallFab();
   render();
 });
+
 
 
 
