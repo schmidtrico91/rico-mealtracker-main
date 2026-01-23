@@ -655,328 +655,419 @@ function render(){
   renderDayList(state,date);
 }
 
-// ---------- Wire ----------
+// ---------------- wire ----------------
 function wire(){
- 
-  // nav
-  document.querySelectorAll(".navbtn").forEach(btn => {
-    btn.addEventListener("click", () => setView(btn.dataset.view));
-  });
- 
-  // date change
-  const dateEl = document.getElementById("date");
-  if (dateEl){
-    dateEl.addEventListener("change", (e) => {
-      const s = loadState(); initDefaults(s);
-      s.lastDate = e.target.value || todayISO();
-      saveState(s);
-      editingId = null;
-      render();
+  // Helper: safe bind
+  const on = (id, ev, fn) => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener(ev, fn);
+  };
+  const click = (id, fn) => on(id, "click", fn);
+
+  // ----------------------------
+  // Bottom nav -> open modals
+  // ----------------------------
+  document.querySelectorAll(".navbtn").forEach((btn)=>{
+    btn.addEventListener("click", ()=>{
+      const which = btn.dataset.modal;     // IMPORTANT: data-modal
+      if (which) openModal(which);
     });
-  }
- 
-  // macros -> kcal auto
+  });
+
+  // ----------------------------
+  // Modal / Drawer close
+  // ----------------------------
+  click("modalClose", closeModal);
+
+  click("burger", openDrawer);
+  click("drawerClose", closeDrawer);
+
+  // Overlay click closes whichever is open
+  on("overlay","click", ()=>{
+    const modal = document.getElementById("modal");
+    const drawer = document.getElementById("drawer");
+    if (modal && !modal.classList.contains("hidden")) closeModal();
+    if (drawer && !drawer.classList.contains("hidden")) closeDrawer();
+  });
+
+  // ESC closes
+  document.addEventListener("keydown",(e)=>{
+    if(e.key==="Escape"){
+      const modal = document.getElementById("modal");
+      const drawer = document.getElementById("drawer");
+      if (modal && !modal.classList.contains("hidden")) closeModal();
+      if (drawer && !drawer.classList.contains("hidden")) closeDrawer();
+    }
+  });
+
+  // ----------------------------
+  // Date change
+  // ----------------------------
+  on("date","change",(e)=>{
+    const s=initDefaults(loadState());
+    s.lastDate = e.target.value || todayISO();
+    saveState(s);
+    editingId=null;
+    render();
+  });
+
+  // ----------------------------
+  // Create form: macros -> kcal auto
   // WICHTIG: wenn User Makros tippt => per100-Automatik deaktivieren
-  ["p","c","f"].forEach(id => {
+  // ----------------------------
+  ["p","c","f"].forEach((id)=>{
     const el = document.getElementById(id);
     if(!el) return;
-    el.addEventListener("input", () => { clearPer100Base(); updateKcalFromMacros(); });
-    el.addEventListener("change", () => { clearPer100Base(); updateKcalFromMacros(); });
+    el.addEventListener("input", ()=>{
+      clearPer100Base();
+      updateKcalFromMacros();
+    });
+    el.addEventListener("change", ()=>{
+      clearPer100Base();
+      updateKcalFromMacros();
+    });
   });
- 
-  const manualKcalEl = document.getElementById("manualKcal");
-  if (manualKcalEl){
-    manualKcalEl.addEventListener("change", () => updateKcalFromMacros());
-  }
- 
-  // -----------------------------
-  // ✅ NEU: Template sofort übernehmen bei Auswahl (Dropdown)
-  // -----------------------------
-  const tplSelectQuick = document.getElementById("tplSelectQuick");
-  if (tplSelectQuick){
-    tplSelectQuick.addEventListener("change", () => {
-      const s = loadState(); initDefaults(s);
-      const id = tplSelectQuick.value;
-      if (!id) return;
- 
-      const tpl = getTemplateById(s, id);
-      if (!tpl) return;
- 
-      const grams = num("grams") > 0 ? num("grams") : tpl.baseGrams;
- 
-      clearPer100Base();               // Template = feste Makros
-      applyTemplateToForm(tpl, grams);
-      updateKcalFromMacros();
-    });
-  }
- 
-  // apply template BUTTON (Fallback – darf bleiben)
-  const applyTplQuickBtn = document.getElementById("applyTplQuick");
-  if (applyTplQuickBtn){
-    applyTplQuickBtn.onclick = () => {
-      const s = loadState(); initDefaults(s);
-      const id = document.getElementById("tplSelectQuick")?.value;
-      if (!id) return;
- 
-      const tpl = getTemplateById(s, id);
-      if (!tpl) return;
- 
-      const grams = num("grams") > 0 ? num("grams") : tpl.baseGrams;
- 
+  on("manualKcal","change", ()=> updateKcalFromMacros());
+
+  // grams scaling (only if per100 base active)
+  on("grams","input", ()=> applyPer100ScalingIfPresent());
+
+  // ----------------------------
+  // Template Dropdown -> SOFORT übernehmen
+  // (Buttons nicht mehr nötig)
+  // ----------------------------
+  on("tplSelectQuick","change", ()=>{
+    const id = document.getElementById("tplSelectQuick")?.value;
+    if(!id) return;
+
+    const s=initDefaults(loadState());
+    const tpl = (s.templates||[]).find(x=>x.id===id);
+    if(!tpl) return;
+
+    // Template anwenden => per100 aktiv setzen, damit Gramm-Skalierung klappt
+    // (tpl ist pro 100g)
+    document.getElementById("name").value = tpl.name || "";
+    document.getElementById("grams").value = Number(document.getElementById("grams").value) > 0
+      ? document.getElementById("grams").value
+      : 100;
+
+    setPer100Base(tpl.p100||0, tpl.c100||0, tpl.f100||0, tpl.kcal100||null);
+    applyPer100ScalingIfPresent();
+    updateKcalFromMacros();
+  });
+
+  // ----------------------------
+  // Recents Dropdown -> SOFORT übernehmen (inkl. Nährwerte)
+  // ----------------------------
+  on("recentSelect","change", ()=>{
+    const id = document.getElementById("recentSelect")?.value;
+    if(!id) return;
+
+    const s=initDefaults(loadState());
+    const r = (s.recents||[]).find(x=>x.id===id);
+    if(!r) return;
+
+    document.getElementById("name").value = r.name || "";
+    document.getElementById("grams").value = (Number.isFinite(+r.grams) && +r.grams > 0) ? +r.grams : 100;
+
+    // wenn per100 vorhanden -> Base setzen und skalieren
+    if(r.p100!=null || r.c100!=null || r.f100!=null){
+      setPer100Base(r.p100||0, r.c100||0, r.f100||0, r.kcal100||null);
+      applyPer100ScalingIfPresent();
+    }else{
       clearPer100Base();
-      applyTemplateToForm(tpl, grams);
+      document.getElementById("p").value = r.p ?? 0;
+      document.getElementById("c").value = r.c ?? 0;
+      document.getElementById("f").value = r.f ?? 0;
+      document.getElementById("manualKcal").checked = false;
       updateKcalFromMacros();
-    };
-  }
- 
-  // -----------------------------
-  // ✅ NEU: Recents sofort übernehmen bei Auswahl (Dropdown)
-  // Voraussetzung: du hast im HTML ein <select id="recentSelect">
-  // optional ein Button <button id="applyRecent">
-  // -----------------------------
-  const recentSelect = document.getElementById("recentSelect");
-  if (recentSelect){
-    recentSelect.addEventListener("change", () => {
-      const s = loadState(); initDefaults(s);
-      const rid = recentSelect.value;
-      if (!rid) return;
- 
-      const r = (s.recents || []).find(x => x.id === rid);
-      if (!r) return;
- 
-      // Name + Gramm übernehmen
-      const nameEl = document.getElementById("name");
-      const gramsEl = document.getElementById("grams");
-      if (nameEl) nameEl.value = r.name || "";
-      if (gramsEl) gramsEl.value = (Number.isFinite(+r.grams) && +r.grams > 0) ? +r.grams : 100;
- 
-      // per100 gespeichert? -> per100-Base setzen + skalieren
-      if (r.p100 != null || r.c100 != null || r.f100 != null){
-        setPer100Base(r.p100 || 0, r.c100 || 0, r.f100 || 0, r.kcal100 || null);
-        applyPer100ScalingIfPresent();
-      } else {
-        // sonst direkte Makros übernehmen
-        clearPer100Base();
-        const pEl=document.getElementById("p");
-        const cEl=document.getElementById("c");
-        const fEl=document.getElementById("f");
-        if (pEl) pEl.value = r.p ?? 0;
-        if (cEl) cEl.value = r.c ?? 0;
-        if (fEl) fEl.value = r.f ?? 0;
- 
-        const man = document.getElementById("manualKcal");
-        if (man) man.checked = false;
- 
-        updateKcalFromMacros();
+    }
+  });
+
+  // ----------------------------
+  // Add / Save entry
+  // ----------------------------
+  click("add", ()=>{
+    const s=initDefaults(loadState());
+    const date=ensureDateFilled();
+    const key=dayKey(date);
+    if(!s[key]) s[key]=[];
+
+    const name=(document.getElementById("name")?.value||"").trim() || "Eintrag";
+    const grams=num("grams");
+    const p=num("p"), c=num("c"), f=num("f");
+
+    const manual=document.getElementById("manualKcal")?.checked;
+    const kcal = manual ? num("kcal") : calcKcalFromMacros(p,c,f);
+
+    // Save/update entry
+    if(editingId){
+      const idx=(s[key]||[]).findIndex(x=>x.id===editingId);
+      if(idx>=0){
+        s[key][idx] = { ...s[key][idx], name, grams, p, c, f, kcal: Math.round(kcal), manualKcal: !!manual };
       }
-    });
-  }
- 
-  // apply recents BUTTON (Fallback – falls vorhanden)
-  const applyRecentBtn = document.getElementById("applyRecent");
-  if (applyRecentBtn){
-    applyRecentBtn.onclick = () => {
-      const s = loadState(); initDefaults(s);
-      const rid = document.getElementById("recentSelect")?.value;
-      if (!rid) return;
- 
-      const r = (s.recents || []).find(x => x.id === rid);
-      if (!r) return;
- 
-      const nameEl = document.getElementById("name");
-      const gramsEl = document.getElementById("grams");
-      if (nameEl) nameEl.value = r.name || "";
-      if (gramsEl) gramsEl.value = (Number.isFinite(+r.grams) && +r.grams > 0) ? +r.grams : 100;
- 
-      if (r.p100 != null || r.c100 != null || r.f100 != null){
-        setPer100Base(r.p100 || 0, r.c100 || 0, r.f100 || 0, r.kcal100 || null);
-        applyPer100ScalingIfPresent();
-      } else {
-        clearPer100Base();
-        const pEl=document.getElementById("p");
-        const cEl=document.getElementById("c");
-        const fEl=document.getElementById("f");
-        if (pEl) pEl.value = r.p ?? 0;
-        if (cEl) cEl.value = r.c ?? 0;
-        if (fEl) fEl.value = r.f ?? 0;
- 
-        const man = document.getElementById("manualKcal");
-        if (man) man.checked = false;
- 
-        updateKcalFromMacros();
-      }
+      editingId=null;
+    }else{
+      s[key].push({ id: uid(), name, grams, p, c, f, kcal: Math.round(kcal), manualKcal: !!manual });
+    }
+
+    // Recents (Top 12) speichern
+    const isPer100 = document.getElementById("grams")?.dataset.per100 === "1";
+    const recentObj = {
+      id: uid(),
+      name,
+      grams,
+      p, c, f,
+      kcal: Math.round(kcal),
+      p100: isPer100 ? (parseFloat(document.getElementById("grams").dataset.p100||"0")||0) : null,
+      c100: isPer100 ? (parseFloat(document.getElementById("grams").dataset.c100||"0")||0) : null,
+      f100: isPer100 ? (parseFloat(document.getElementById("grams").dataset.f100||"0")||0) : null,
+      kcal100: isPer100 ? (parseFloat(document.getElementById("grams").dataset.kcal100||"")||null) : null
     };
-  }
- 
-  // templates manage load/delete/save
-  const tplLoadBtn = document.getElementById("tplLoad");
-  if (tplLoadBtn){
-    tplLoadBtn.onclick = () => {
-      const s = loadState(); initDefaults(s);
-      const id = document.getElementById("tplSelect")?.value;
-      if (!id) return;
-      const tpl = getTemplateById(s, id);
-      if (!tpl) return;
- 
-      clearPer100Base();
-      applyTemplateToForm(tpl, tpl.baseGrams);
- 
-      const quickSel = document.getElementById("tplSelectQuick");
-      if (quickSel) quickSel.value = id;
- 
-      updateKcalFromMacros();
-    };
-  }
- 
-  const tplDeleteBtn = document.getElementById("tplDelete");
-  if (tplDeleteBtn){
-    tplDeleteBtn.onclick = () => {
-      const s = loadState(); initDefaults(s);
-      const id = document.getElementById("tplSelect")?.value;
-      if (!id) return;
-      const tpl = getTemplateById(s, id);
-      if (!tpl) return;
-      if (!confirm(`Template wirklich löschen?\n\n${tpl.name}`)) return;
- 
-      s.templates = s.templates.filter(t => t.id !== id);
-      saveState(s);
-      render();
-    };
-  }
- 
-  const tplSaveBtn = document.getElementById("tplSave");
-  if (tplSaveBtn){
-    tplSaveBtn.onclick = () => {
-      const s = loadState(); initDefaults(s);
- 
-      const name = (document.getElementById("tplName")?.value || "").trim();
-      const baseGrams = parseFloat(String(document.getElementById("tplBaseG")?.value||"").replace(",", "."));
-      if (!name) return alert("Bitte Template-Name eingeben.");
-      if (!Number.isFinite(baseGrams) || baseGrams <= 0) return alert("Bitte gültiges Basisgramm eingeben (z.B. 100).");
- 
-      const p = num("p"), c = num("c"), f = num("f");
-      if ((p+c+f) <= 0) return alert("Bitte erst Makros (P/C/F) eingeben.");
- 
-      const existing = s.templates.find(t => t.name.toLowerCase() === name.toLowerCase());
-      if (existing){
-        if (!confirm(`Template "${name}" existiert. Überschreiben?`)) return;
-        existing.baseGrams = baseGrams;
-        existing.p = p; existing.c = c; existing.f = f;
-      } else {
-        s.templates.push({ id: uid(), name, baseGrams, p, c, f });
-      }
- 
-      saveState(s);
-      const nEl=document.getElementById("tplName"); if(nEl) nEl.value="";
-      const bEl=document.getElementById("tplBaseG"); if(bEl) bEl.value="";
-      render();
-    };
-  }
- 
-  // add entry
-  const addBtn = document.getElementById("add");
-  if (addBtn){
-    addBtn.onclick = () => {
-      const s = loadState(); initDefaults(s);
-      const date = ensureDateFilled();
-      const key = dayKey(date);
-      if (!s[key]) s[key] = [];
- 
-      const name = (document.getElementById("name")?.value || "").trim() || "Eintrag";
-      const grams = num("grams");
-      const p = num("p"), c = num("c"), f = num("f");
-      const manual = document.getElementById("manualKcal")?.checked;
-      const kcal = manual ? num("kcal") : calcKcalFromMacros(p,c,f);
- 
-      s[key].push({ id: uid(), name, grams, p, c, f, kcal: Math.round(kcal), manualKcal: manual });
-      saveState(s);
- 
-      // clear name for quick next
-      const nameEl=document.getElementById("name"); if(nameEl) nameEl.value="";
-      editingId = null;
-      setView("home");
-    };
-  }
- 
-  // clear day
-  const clearDayBtn = document.getElementById("clearDay");
-  if (clearDayBtn){
-    clearDayBtn.onclick = () => {
-      const s = loadState(); initDefaults(s);
-      const date = ensureDateFilled();
-      delete s[dayKey(date)];
-      if (s.cut?.committedDays?.[date]) delete s.cut.committedDays[date];
-      saveState(s);
-      editingId = null;
-      render();
-    };
-  }
- 
-  // cut save/reset
-  const saveCutBtn = document.getElementById("saveCut");
-  if (saveCutBtn){
-    saveCutBtn.onclick = () => {
-      const s = loadState(); initDefaults(s);
-      const start = num("defBudget");
-      s.cut.maintenance = num("maintKcal");
-      s.cut.budgetStart = start;
-      s.cut.budgetLeft = start;
-      s.cut.committedDays = {};
-      saveState(s);
-      render();
-    };
-  }
- 
-  // commit day deficit
-  const commitBtn = document.getElementById("commitDay");
-  if (commitBtn){
-    commitBtn.onclick = () => {
-      const s = loadState(); initDefaults(s);
-      const date = ensureDateFilled();
-      if (!s.cut.budgetStart || s.cut.budgetStart <= 0){
-        alert("Bitte erst ein Defizit-Budget setzen (Budget-Menü).");
-        return;
-      }
-      if (s.cut.committedDays?.[date]){
-        alert("Heute wurde bereits verbucht.");
-        return;
-      }
-      const entries = s[dayKey(date)] || [];
-      const sums = sumEntries(entries);
-      const maint = s.cut.maintenance || 0;
-      const dayDef = Math.max(0, maint - sums.kcal);
-      s.cut.budgetLeft = Math.max(0, (s.cut.budgetLeft || 0) - dayDef);
-      s.cut.committedDays[date] = true;
-      saveState(s);
-      render();
-    };
-  }
- 
+
+    s.recents = (s.recents || []).filter(x => x.name !== name);
+    s.recents.unshift(recentObj);
+    s.recents = s.recents.slice(0, 12);
+
+    saveState(s);
+
+    clearPer100Base();
+    closeModal();
+    render();
+  });
+
+  // ----------------------------
   // OFF search
-  const offBtn = document.getElementById("offSearchBtn");
-  if (offBtn){
-    offBtn.onclick = async () => {
-      const q = (document.getElementById("offQuery")?.value || "").trim();
-      if (!q) return;
-      try{ await offSearch(q); }
-      catch(e){
-        const st=document.getElementById("offStatus");
-        if(st) st.textContent = "Fehler: " + (e?.message || e);
+  // ----------------------------
+  click("offSearchBtn", async ()=>{
+    const q=(document.getElementById("offQuery")?.value||"").trim();
+    if(!q) return;
+    try{ await offSearch(q); }
+    catch(e){
+      const st=document.getElementById("offStatus");
+      if(st) st.textContent="Fehler: "+(e?.message||e);
+    }
+  });
+
+  on("offQuery","keydown",(e)=>{
+    if(e.key==="Enter"){ e.preventDefault(); document.getElementById("offSearchBtn")?.click(); }
+  });
+
+  // ----------------------------
+  // Barcode scan
+  // ----------------------------
+  click("scanBtn", startBarcodeScan);
+  click("scanStop", stopBarcodeScan);
+
+  // ----------------------------
+  // Cut commit
+  // ----------------------------
+  click("commitDay", commitDeficitForCurrentDay);
+  click("drawerCommit", ()=>{
+    closeDrawer();
+    commitDeficitForCurrentDay();
+  });
+
+  // ----------------------------
+  // Drawer -> open modals
+  // ----------------------------
+  click("openGoals", ()=>{ closeDrawer(); openModal("goals"); });
+  click("openCut", ()=>{ closeDrawer(); openModal("cut"); });
+  click("openTemplates", ()=>{ closeDrawer(); openModal("templates"); });
+
+  // Drawer reset buttons
+  click("resetGoals", ()=>{
+    const s=initDefaults(loadState());
+    if(!confirm("Tagesziele auf Default zurücksetzen?")) return;
+    s.goals = { kcal: 2400, p: 150, c: 300, f: 60 };
+    saveState(s);
+    closeDrawer();
+    render();
+  });
+
+  click("resetCut", ()=>{
+    if(!confirm("Cut-Countdown komplett resetten?")) return;
+    const s=initDefaults(loadState());
+    s.cut.budgetStart = 0;
+    s.cut.budgetLeft = 0;
+    s.cut.committedDays = {};
+    saveState(s);
+    closeDrawer();
+    render();
+  });
+
+  // ----------------------------
+  // GOALS modal: live kcal from macro
+  // ----------------------------
+  ["goalP","goalC","goalF"].forEach(id=>{
+    on(id,"input", updateGoalsKcalFromMacros);
+  });
+
+  click("goalsResetBtn", ()=>{
+    const s=initDefaults(loadState());
+    s.goals = { kcal: 2400, p: 150, c: 300, f: 60 };
+    saveState(s);
+    prefillGoalsModal();
+    render();
+  });
+
+  click("goalsSaveBtn", ()=>{
+    const s=initDefaults(loadState());
+
+    s.goals.p = Math.max(0, parseFloat(String(document.getElementById("goalP")?.value||"0").replace(",", ".")) || 0);
+    s.goals.c = Math.max(0, parseFloat(String(document.getElementById("goalC")?.value||"0").replace(",", ".")) || 0);
+    s.goals.f = Math.max(0, parseFloat(String(document.getElementById("goalF")?.value||"0").replace(",", ".")) || 0);
+
+    // kcal wird read-only aus Makros berechnet
+    s.goals.kcal = Math.round(calcKcalFromMacros(s.goals.p, s.goals.c, s.goals.f));
+
+    saveState(s);
+    closeModal();
+    render();
+  });
+
+  // ----------------------------
+  // CUT modal
+  // ----------------------------
+  click("cutSaveBtn", ()=>{
+    const s=initDefaults(loadState());
+    s.cut.maintenance = Math.max(0, parseInt(document.getElementById("cutMaint")?.value || "0", 10) || 0);
+    s.cut.budgetStart = Math.max(0, parseInt(document.getElementById("cutBudgetStart")?.value || "0", 10) || 0);
+    s.cut.budgetLeft = s.cut.budgetStart;
+    s.cut.committedDays = {};
+    saveState(s);
+    closeModal();
+    render();
+  });
+
+  click("cutResetBtn", ()=>{
+    if(!confirm("Cut-Countdown komplett resetten?")) return;
+    const s=initDefaults(loadState());
+    s.cut.budgetStart = 0;
+    s.cut.budgetLeft = 0;
+    s.cut.committedDays = {};
+    saveState(s);
+    prefillCutModal();
+    render();
+  });
+
+  // ----------------------------
+  // Templates modal
+  // ----------------------------
+  on("tplPick","change", (e)=> loadTemplateToEditor(e.target.value));
+
+  click("tplUseCurrentBtn", ()=>{
+    const g = num("grams") || 100;
+    const p = num("p"), c = num("c"), f = num("f");
+    const factor = g > 0 ? (100 / g) : 1;
+
+    document.getElementById("tplEditBaseG").value = 100;
+    document.getElementById("tplEditP").value = round1(p * factor);
+    document.getElementById("tplEditC").value = round1(c * factor);
+    document.getElementById("tplEditF").value = round1(f * factor);
+
+    if(!(document.getElementById("tplEditName")?.value||"").trim()){
+      document.getElementById("tplEditName").value = (document.getElementById("name")?.value || "").trim();
+    }
+  });
+
+  click("tplSaveBtn2", ()=>{
+    const s=initDefaults(loadState());
+    if(!s.templates) s.templates=[];
+
+    const currentId = document.getElementById("tplPick")?.value;
+    const id = currentId || uid();
+
+    const name = (document.getElementById("tplEditName")?.value || "").trim();
+    if(!name){ alert("Bitte Template-Namen eingeben."); return; }
+
+    const baseG = Math.max(1, parseInt(document.getElementById("tplEditBaseG")?.value || "100", 10) || 100);
+    const p100 = Math.max(0, parseFloat(String(document.getElementById("tplEditP")?.value||"0").replace(",", ".")) || 0);
+    const c100 = Math.max(0, parseFloat(String(document.getElementById("tplEditC")?.value||"0").replace(",", ".")) || 0);
+    const f100 = Math.max(0, parseFloat(String(document.getElementById("tplEditF")?.value||"0").replace(",", ".")) || 0);
+    const kcal100 = Math.round(calcKcalFromMacros(p100,c100,f100));
+
+    const obj = { id, name, baseG, p100, c100, f100, kcal100 };
+
+    const idx = s.templates.findIndex(x=>x.id===id);
+    if(idx>=0) s.templates[idx]=obj;
+    else s.templates.push(obj);
+
+    saveState(s);
+    refreshTemplatePick();
+    document.getElementById("tplPick").value = id;
+    alert("Template gespeichert.");
+  });
+
+  click("tplDeleteBtn2", ()=>{
+    const id = document.getElementById("tplPick")?.value;
+    if(!id){ alert("Kein Template gewählt."); return; }
+    if(!confirm("Template löschen?")) return;
+
+    const s=initDefaults(loadState());
+    s.templates = (s.templates||[]).filter(x=>x.id!==id);
+    saveState(s);
+    prefillTemplatesModal();
+    alert("Gelöscht.");
+  });
+
+  click("tplApplyToCreateBtn", ()=>{
+    const id = document.getElementById("tplPick")?.value;
+    if(!id){ alert("Bitte Template auswählen."); return; }
+    applyTemplateToCreate(id);
+  });
+
+  // ----------------------------
+  // Export / Import / Wipe / Force Update
+  // ----------------------------
+  click("exportData", ()=>{
+    const s=initDefaults(loadState());
+    const blob = new Blob([JSON.stringify(s, null, 2)], { type: "application/json" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `ricos-mealtracker-backup-${todayISO()}.json`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  });
+
+  on("importFile","change", async (e)=>{
+    const file = e.target.files?.[0];
+    if(!file) return;
+    try{
+      const txt = await file.text();
+      const obj = JSON.parse(txt);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(obj));
+      alert("Import erfolgreich.");
+      closeDrawer();
+      render();
+    }catch(err){
+      alert("Import fehlgeschlagen: " + (err?.message || err));
+    }finally{
+      e.target.value="";
+    }
+  });
+
+  click("wipeAll", ()=>{
+    if(!confirm("Wirklich ALLES löschen?")) return;
+    localStorage.removeItem(STORAGE_KEY);
+    closeDrawer();
+    render();
+  });
+
+  click("forceUpdate", async ()=>{
+    try{
+      if("serviceWorker" in navigator){
+        const regs = await navigator.serviceWorker.getRegistrations();
+        await Promise.all(regs.map(r=>r.unregister()));
       }
-    };
-  }
- 
-  // Scan
-  const scanBtn = document.getElementById("scanBtn");
-  if (scanBtn) scanBtn.onclick = startBarcodeScan;
- 
-  const scanStopBtn = document.getElementById("scanStop");
-  if (scanStopBtn) scanStopBtn.onclick = stopBarcodeScan;
- 
-  // grams scaling (Template ODER per100 OFF/Scan)
-  wireScalingFromGrams();
+    }catch(_){}
+    alert("Update erzwungen. Seite lädt neu…");
+    location.reload();
+  });
+
+  // Initial values
+  updateKcalFromMacros();
 }
- 
  
 
 // ---------------- boot ----------------
@@ -990,6 +1081,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
   wireInstallFab();
   render();
 });
+
 
 
 
