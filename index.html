@@ -39,22 +39,30 @@
   </div>
  
   <!-- Cut / Bulk -->
-  <div class="drawer-section">
-    <div class="drawer-title">Cut / Bulk</div>
+<div class="drawer-section">
+  <div class="drawer-title">Cut / Bulk</div>
+ 
+  <label class="drawer-item drawer-toggle">
+    <span>Modus</span>
+    <select id="modeSelect">
+      <option value="cut">Cut (Defizit)</option>
+      <option value="bulk">Bulk (Überschuss)</option>
+    </select>
+  </label>
+ 
+  <button class="drawer-item" id="openCut">Budget / Maintenance</button>
+  <button class="drawer-item" id="drawerCommit">Heute verbuchen</button>
+  <button class="drawer-item danger" id="resetCut">Reset</button>
+ 
+  <div class="drawer-note">
+    Cut: verbucht <b>Maintenance − gegessen</b><br>
+    Bulk: verbucht <b>gegessen − Maintenance</b>
+  </div>
+</div>
+ 
  
     <!-- Toggle -->
-    <div class="drawer-item drawer-toggle" style="display:flex;align-items:center;justify-content:space-between;">
-      <span style="font-weight:800;">Bulk-Modus</span>
  
-      <label class="switch">
-        <input type="checkbox" id="modeToggle">
-        <span class="slider"></span>
-      </label>
-    </div>
- 
-    <div class="drawer-note" id="modeLabel">
-      Aktiv: Cut
-    </div>
  
     <button class="drawer-item" id="openCut">Budget / Maintenance</button>
     <button class="drawer-item" id="drawerCommit">Heute verbuchen</button>
@@ -439,6 +447,7 @@
 
 </body>
 </html>
+
 
 
 
