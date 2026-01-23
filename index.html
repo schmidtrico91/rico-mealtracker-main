@@ -363,7 +363,7 @@
 
         <!-- CUT SETTINGS -->
         <div id="viewCut" class="view hidden">
-          <div class="muted small">Cut-Countdown Einstellungen</div>
+          <div class="muted small" id="cutModalTitle">Cut-Countdown Einstellungen</div>
 
           <div class="field top10">
             <label for="cutMaint">Maintenance (kcal)</label>
@@ -371,7 +371,7 @@
           </div>
 
           <div class="field top10">
-            <label for="cutBudgetStart">Defizit-Budget Start (kcal)</label>
+            <label for="cutBudgetStart" id="cutBudgetLabel">Defizit-Budget Start (kcal)</label>
             <input id="cutBudgetStart" type="number" min="0" step="100" />
           </div>
 
@@ -516,6 +516,7 @@
 
 </body>
 </html>
+
 
 
 
