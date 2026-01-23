@@ -19,65 +19,79 @@
   <!-- Overlay -->
   <div id="overlay" class="overlay hidden"></div>
 
+ 
   <!-- Drawer -->
-  <aside id="drawer" class="drawer hidden" aria-hidden="true">
-    <div class="drawer-head">
-      <div class="drawer-brand">
-        <span class="brand-mark">R</span>
-        <span class="brand-title brush">Rico’s Mealtracker</span>
-      </div>
-      <button id="drawerClose" class="iconbtn" aria-label="Menü schließen">✕</button>
-    </div>
-
-    <div class="drawer-section">
-      <div class="drawer-title">Tagesziele</div>
-      <button class="drawer-item" id="openGoals">Ziele bearbeiten</button>
-      <button class="drawer-item" id="resetGoals">Ziele zurücksetzen</button>
-    </div>
-
-   <div class="drawer-section">
-     <div class="drawer-title">Cut / Bulk</div>
-     
-  <label class="drawer-item drawer-toggle">
-    <span>Modus</span>
-    <select id="modeSelect">
-      <option value="cut">Cut (Defizit)</option>
-      <option value="bulk">Bulk (Überschuss)</option>
-    </select>
-  </label>
+<aside id="drawer" class="drawer hidden" aria-hidden="true">
  
-  <button class="drawer-item" id="openCut">Budget / Maintenance</button>
-  <button class="drawer-item" id="drawerCommit">Heute verbuchen</button>
-  <button class="drawer-item danger" id="resetCut">Reset</button>
- 
-  <div class="drawer-note">
-    Cut: verbucht <b>Maintenance − gegessen</b> (min. 0)<br>
-    Bulk: verbucht <b>gegessen − Maintenance</b> (min. 0)
+  <div class="drawer-head">
+    <div class="drawer-brand">
+      <span class="brand-mark">R</span>
+      <span class="brand-title brush">Rico’s Mealtracker</span>
+    </div>
+    <button id="drawerClose" class="iconbtn" aria-label="Menü schließen">✕</button>
   </div>
-   </div>
  
-
-    <div class="drawer-section">
-      <div class="drawer-title">Templates</div>
-      <button class="drawer-item" id="openTemplates">Template Manager</button>
-    </div>
-
-    <div class="drawer-section">
-      <div class="drawer-title">Daten & Backup</div>
-      <button class="drawer-item" id="exportData">Export (JSON)</button>
-      <label class="drawer-item filelike">
-        Import (JSON)
-        <input id="importFile" type="file" accept="application/json" hidden>
+  <!-- Tagesziele -->
+  <div class="drawer-section">
+    <div class="drawer-title">Tagesziele</div>
+    <button class="drawer-item" id="openGoals">Ziele bearbeiten</button>
+    <button class="drawer-item" id="resetGoals">Ziele zurücksetzen</button>
+  </div>
+ 
+  <!-- Cut / Bulk -->
+  <div class="drawer-section">
+    <div class="drawer-title">Cut / Bulk</div>
+ 
+    <!-- Toggle -->
+    <div class="drawer-item drawer-toggle" style="display:flex;align-items:center;justify-content:space-between;">
+      <span style="font-weight:800;">Bulk-Modus</span>
+ 
+      <label class="switch">
+        <input type="checkbox" id="modeToggle">
+        <span class="slider"></span>
       </label>
-      <button class="drawer-item danger" id="wipeAll">Alles löschen</button>
     </div>
-
-    <div class="drawer-section">
-      <div class="drawer-title">App</div>
-      <button class="drawer-item" id="forceUpdate">Update erzwingen</button>
-      <div class="drawer-note" id="appVersion">Version: –</div>
+ 
+    <div class="drawer-note" id="modeLabel">
+      Aktiv: Cut
     </div>
-  </aside>
+ 
+    <button class="drawer-item" id="openCut">Budget / Maintenance</button>
+    <button class="drawer-item" id="drawerCommit">Heute verbuchen</button>
+    <button class="drawer-item danger" id="resetCut">Reset</button>
+ 
+    <div class="drawer-note">
+      Cut: verbucht <b>Maintenance − gegessen</b><br>
+      Bulk: verbucht <b>gegessen − Maintenance</b>
+    </div>
+  </div>
+ 
+  <!-- Templates -->
+  <div class="drawer-section">
+    <div class="drawer-title">Templates</div>
+    <button class="drawer-item" id="openTemplates">Template Manager</button>
+  </div>
+ 
+  <!-- Daten -->
+  <div class="drawer-section">
+    <div class="drawer-title">Daten & Backup</div>
+    <button class="drawer-item" id="exportData">Export (JSON)</button>
+    <label class="drawer-item filelike">
+      Import (JSON)
+      <input id="importFile" type="file" accept="application/json" hidden>
+    </label>
+    <button class="drawer-item danger" id="wipeAll">Alles löschen</button>
+  </div>
+ 
+  <!-- App -->
+  <div class="drawer-section">
+    <div class="drawer-title">App</div>
+    <button class="drawer-item" id="forceUpdate">Update erzwingen</button>
+    <div class="drawer-note" id="appVersion">Version: –</div>
+  </div>
+ 
+</aside>
+ 
 
   <!-- Topbar -->
   <header class="topbar">
@@ -425,5 +439,6 @@
 
 </body>
 </html>
+
 
 
