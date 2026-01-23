@@ -30,9 +30,11 @@ function initDefaults(s){
   if (!s.cut) s.cut = { maintenance: 3000, budgetStart: 0, budgetLeft: 0, committedDays: {} };
   if (!s.templates) s.templates = [];
   if (!s.lastDate) s.lastDate = todayISO();
-  if (!s.recents) s.recents =[];
+  if (!s.recents) s.recents = [];
+  if (!s.settings) s.settings = { mode: "cut" };
   return s;
 }
+ 
 
 function setText(id, txt){ const el=$(id); if(el) el.textContent=String(txt); }
 
@@ -520,27 +522,39 @@ function stopBarcodeScan(){
 function commitDeficitForCurrentDay(){
   const s = initDefaults(loadState());
   const date = ensureDateFilled();
-
+ 
   if (!s.cut.committedDays) s.cut.committedDays = {};
   if (s.cut.committedDays[date]) {
     alert("Heute bereits verbucht.");
     return;
   }
-
+ 
   const entries = s[dayKey(date)] || [];
   const sums = sumEntries(entries);
-
+ 
   const maintenance = Math.round(s.cut.maintenance || 0);
   const eaten = Math.round(sums.kcal || 0);
-  const deficit = Math.max(0, maintenance - eaten);
-
-  s.cut.budgetLeft = Math.max(0, Math.round((s.cut.budgetLeft || 0) - deficit));
+ 
+  const mode = s.settings?.mode || "cut";
+ 
+  let amount = 0;
+  if (mode === "bulk") {
+    // Überschuss: gegessen - maintenance
+    amount = Math.max(0, eaten - maintenance);
+  } else {
+    // Defizit: maintenance - gegessen
+    amount = Math.max(0, maintenance - eaten);
+  }
+ 
+  s.cut.budgetLeft = Math.max(0, Math.round((s.cut.budgetLeft || 0) - amount));
   s.cut.committedDays[date] = true;
-
+ 
   saveState(s);
   render();
-  alert(`Verbucht: ${deficit} kcal Defizit`);
+ 
+  alert(`Verbucht (${mode.toUpperCase()}): ${amount} kcal`);
 }
+ 
 
 // ---------------- Templates apply ----------------
 function applyTemplateToCreate(tplId){
@@ -1081,6 +1095,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
   wireInstallFab();
   render();
 });
+
 
 
 
