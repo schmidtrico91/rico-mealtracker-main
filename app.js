@@ -136,15 +136,26 @@ function normalizeOFF(n){ return Number.isFinite(n) ? n : 0; }
 
 // ---------------- modal + drawer ----------------
 function openDrawer(){
-  const overlay=$("overlay"), drawer=$("drawer");
+  const overlay = $("overlay");
+  const drawer  = $("drawer");
   if(!overlay || !drawer) return;
+ 
   overlay.classList.remove("hidden");
   drawer.classList.remove("hidden");
   drawer.setAttribute("aria-hidden","false");
-  const s = initDefaults(loadState());
-  if ($("modeSelect")) $("modeSelect").value = s.settings?.mode || "cut";
  
+  const s = initDefaults(loadState());
+  const mode = s.settings?.mode || "cut";
+ 
+  // Switch setzen
+  const t = $("modeToggle");
+  if (t) t.checked = (mode === "bulk");
+ 
+  // Label setzen (optional, aber nice)
+  const lbl = $("modeLabel");
+  if (lbl) lbl.textContent = "Aktiv: " + (mode === "bulk" ? "Bulk" : "Cut");
 }
+ 
 function closeDrawer(){
   const overlay=$("overlay"), drawer=$("drawer"), modal=$("modal");
   if(!overlay || !drawer || !modal) return;
@@ -927,13 +938,18 @@ function wire(){
   click("openCut", ()=>{ closeDrawer(); openModal("cut"); });
   click("openTemplates", ()=>{ closeDrawer(); openModal("templates"); });
 
-  // Mode switch (Cut/Bulk)
-  $("modeSelect")?.addEventListener("change", (e)=>{
+ 
+ // Mode toggle (Cut/Bulk) — Switch
+  on("modeToggle", "change", (e)=>{
     const s = initDefaults(loadState());
-    s.settings.mode = e.target.value === "bulk" ? "bulk" : "cut";
+    s.settings = s.settings || {};  
+    s.settings.mode = e.target.checked ? "bulk" : "cut";
     saveState(s);
+    const lbl = document.getElementById("modeLabel");
+    if (lbl) lbl.textContent = "Aktiv: " + (s.settings.mode === "bulk" ? "Bulk" : "Cut");
     render();
   });
+ 
  
 
   // Drawer reset buttons
@@ -1142,6 +1158,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
   wireInstallFab();
   render();
 });
+
 
 
 
