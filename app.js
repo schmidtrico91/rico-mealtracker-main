@@ -665,10 +665,40 @@ function render(){
   setText("sumC", Math.round(sums.c));
   setText("sumF", Math.round(sums.f));
  
-  // --- kcal progress bar ---
-  const goalKcal = Math.max(0, Math.round(state.goals.kcal || 0));
-  const pct = goalKcal > 0 ? clamp01(sums.kcal / goalKcal) : 0;
-  if ($("kcalBar")) $("kcalBar").style.width = `${Math.round(pct * 100)}%`;
+ 
+  // --- kcal progress bar (Bulk: grün NUR rechts vom Maintenance-Marker) ---
+const goalKcal = Math.max(0, Math.round(state.goals.kcal || 0));
+const pct = goalKcal > 0 ? clamp01(sums.kcal / goalKcal) : 0;
+ 
+const kcalBarEl = $("kcalBar");
+if (kcalBarEl) {
+  kcalBarEl.style.width = `${Math.round(pct * 100)}%`;
+ 
+  // Default: Brand-Türkis
+  kcalBarEl.style.background =
+    "linear-gradient(90deg, var(--accent), var(--accent2))";
+ 
+  const mode = state.settings?.mode || "cut";
+ 
+  if (mode === "bulk") {
+    const maint = Math.max(0, Math.round(state.cut.maintenance || 0));
+    const markerPct = goalKcal > 0 ? clamp01(maint / goalKcal) : 0;
+ 
+    // Nur wenn über Maintenance gegessen wurde
+    if (pct > markerPct && pct > 0) {
+      // Aufteilung relativ zur gefüllten Breite
+      const split = Math.round((markerPct / pct) * 100);
+ 
+      kcalBarEl.style.background = `
+        linear-gradient(90deg,
+          var(--accent) 0%,
+          var(--accent2) ${split}%,
+          #22c55e ${split}%,
+          #16a34a 100%)
+      `;
+    }
+  }
+}
  
   // --- mode + maintenance (define ONCE) ---
   const mode = state.settings?.mode || "cut"; // "cut" | "bulk"
@@ -1176,6 +1206,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
   wireInstallFab();
   render();
 });
+
 
 
 
